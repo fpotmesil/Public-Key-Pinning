@@ -10,121 +10,38 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <fstream>
+#include <iterator>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <iostream>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
+#include <vector>
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
-using boost::asio::ip::tcp;
+#include "BoostAsioSslServer.h"
+#include "ConfigOptions.h"
 
-class session : public std::enable_shared_from_this<session>
-{
-public:
-  session(boost::asio::ssl::stream<tcp::socket> socket)
-    : socket_(std::move(socket))
-  {
-  }
+std::string readCommandLineOptions(
+        const int argc,
+        const char * argv[] );
 
-  void start()
-  {
-    do_handshake();
-  }
-
-private:
-  void do_handshake()
-  {
-    auto self(shared_from_this());
-    socket_.async_handshake(boost::asio::ssl::stream_base::server, 
-        [this, self](const boost::system::error_code& error)
-        {
-          if (!error)
-          {
-            do_read();
-          }
-        });
-  }
-
-  void do_read()
-  {
-    auto self(shared_from_this());
-    socket_.async_read_some(boost::asio::buffer(data_),
-        [this, self](const boost::system::error_code& ec, std::size_t length)
-        {
-          if (!ec)
-          {
-            do_write(length);
-          }
-        });
-  }
-
-  void do_write(std::size_t length)
-  {
-    auto self(shared_from_this());
-    boost::asio::async_write(socket_, boost::asio::buffer(data_, length),
-        [this, self](const boost::system::error_code& ec,
-          std::size_t /*length*/)
-        {
-          if (!ec)
-          {
-            do_read();
-          }
-        });
-  }
-
-  boost::asio::ssl::stream<tcp::socket> socket_;
-  char data_[1024];
-};
-
-class server
-{
-public:
-  server(boost::asio::io_context& io_context, unsigned short port)
-    : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
-      context_(boost::asio::ssl::context::sslv23)
-  {
-    context_.set_options(
-        boost::asio::ssl::context::default_workarounds
-        | boost::asio::ssl::context::no_sslv2
-        | boost::asio::ssl::context::single_dh_use);
-    context_.set_password_callback(std::bind(&server::get_password, this));
-    context_.use_certificate_chain_file("server.pem");
-    context_.use_private_key_file("server.pem", boost::asio::ssl::context::pem);
-    context_.use_tmp_dh_file("dh4096.pem");
-
-    do_accept();
-  }
-
-private:
-  std::string get_password() const
-  {
-    return "test";
-  }
-
-  void do_accept()
-  {
-    acceptor_.async_accept(
-        [this](const boost::system::error_code& error, tcp::socket socket)
-        {
-          if (!error)
-          {
-            std::make_shared<session>(
-                boost::asio::ssl::stream<tcp::socket>(
-                  std::move(socket), context_))->start();
-          }
-
-          do_accept();
-        });
-  }
-
-  tcp::acceptor acceptor_;
-  boost::asio::ssl::context context_;
-};
-
-int main(int argc, char* argv[])
+int main(
+        const int argc, 
+        const char* argv[] )
 {
   try
   {
+      std::string configFile = readCommandLineOptions(argc, argv);
+      ConfigOptions config( configFile.c_str() );
+
+      //
+      // FJP DEBUG
+      //
+          std::cerr << "Fred is still developing!!: client <host> <port>\n";
+          return 1;
+
     if (argc != 2)
     {
       std::cerr << "Usage: server <port>\n";
@@ -132,10 +49,7 @@ int main(int argc, char* argv[])
     }
 
     boost::asio::io_context io_context;
-
-    using namespace std; // For atoi.
-    server s(io_context, atoi(argv[1]));
-
+    BoostAsioSslServer s(io_context, atoi(argv[1]));
     io_context.run();
   }
   catch (std::exception& e)
@@ -146,4 +60,48 @@ int main(int argc, char* argv[])
   return 0;
 }
 
+
+std::string readCommandLineOptions(
+        const int argc,
+        const char * argv[] )
+{
+    const auto host_name = boost::asio::ip::host_name();
+    std::string cfgFileName = host_name;
+    cfgFileName.append(".cfg");
+    std::cout << "Default config file name: " << cfgFileName << std::endl;
+    std::string config_file;
+
+    po::options_description cmdline("command line options");
+    cmdline.add_options()
+        ("version,v", "print version string")
+        ("help", "produce help message")
+        ("config,c", po::value<std::string>(&config_file)->default_value(cfgFileName.c_str()),
+         "Config File Name to use instead of default 'hostname.cfg' format.");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, cmdline), vm);
+    po::notify(vm);    
+
+    if( vm.count("help") ) 
+    {
+        std::cout << cmdline << "\n";
+        exit(0);
+    }
+
+    if( vm.count("config") ) 
+    {
+        cfgFileName = vm["config"].as<std::string>();
+
+        std::cout << "Using Command Line Option Config File: " 
+            << cfgFileName << std::endl;
+        //  << vm["config"].as<std::string>() << ".\n";
+
+    }
+    else 
+    {
+        std::cout << "Config file not passed, using default.\n";
+    }
+
+    return cfgFileName;
+}
 
