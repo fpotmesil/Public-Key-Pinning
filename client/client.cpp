@@ -29,6 +29,10 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
     return os;
 }
 
+std::string readCommandLineOptions(
+        const int argc,
+        const char * argv[] );
+
 //
 // ok how do I want it to start? 
 // well.  Good question.  Just "./client <config file name>" would be nice.
@@ -37,50 +41,24 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 // If the config file does not have good entries, terminate with an error message.
 //
 //
-int main(int argc, char* argv[])
+int main(const int argc, const char* argv[])
 {
   try
   {
-      const auto host_name = boost::asio::ip::host_name();
-      std::string cfgFileName = host_name;
-      cfgFileName.append(".cfg");
-      std::cout << "Default config file name: " << cfgFileName << std::endl;
-      std::string config_file;
-
-      po::options_description cmdline("command line options");
-      cmdline.add_options()
-          ("version,v", "print version string")
-          ("help", "produce help message")
-          ("config,c", po::value<std::string>(&config_file)->default_value(cfgFileName.c_str()),
-           "Config File Name to use instead of default 'hostname.cfg' format.");
-
-      po::variables_map vm;
-      po::store(po::parse_command_line(argc, argv, cmdline), vm);
-      po::notify(vm);    
-
-      if( vm.count("help") ) 
-      {
-          std::cout << cmdline << "\n";
-          return 1;
-      }
-
-      if( vm.count("config") ) 
-      {
-          std::cout << "Using Command Line Option Config File: " 
-              << vm["config"].as<std::string>() << ".\n";
-      }
-      else 
-      {
-          std::cout << "Config file not passed, using default.\n";
-      }
-
-
+      std::string configFile = readCommandLineOptions(argc, argv);
+      ConfigOptions config( configFile.c_str() );
 
       if (argc != 3)
       {
           std::cerr << "Usage: client <host> <port>\n";
           return 1;
       }
+
+      //
+      // FJP DEBUG
+      //
+          std::cerr << "Fred is still developing!!: client <host> <port>\n";
+          return 1;
 
       boost::asio::io_context io_context;
 
@@ -102,4 +80,47 @@ int main(int argc, char* argv[])
   return 0;
 }
 
+std::string readCommandLineOptions(
+        const int argc,
+        const char * argv[] )
+{
+    const auto host_name = boost::asio::ip::host_name();
+    std::string cfgFileName = host_name;
+    cfgFileName.append(".cfg");
+    std::cout << "Default config file name: " << cfgFileName << std::endl;
+    std::string config_file;
+
+    po::options_description cmdline("command line options");
+    cmdline.add_options()
+        ("version,v", "print version string")
+        ("help", "produce help message")
+        ("config,c", po::value<std::string>(&config_file)->default_value(cfgFileName.c_str()),
+         "Config File Name to use instead of default 'hostname.cfg' format.");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, cmdline), vm);
+    po::notify(vm);    
+
+    if( vm.count("help") ) 
+    {
+        std::cout << cmdline << "\n";
+        exit(0);
+    }
+
+    if( vm.count("config") ) 
+    {
+        cfgFileName = vm["config"].as<std::string>();
+
+        std::cout << "Using Command Line Option Config File: " 
+            << cfgFileName << std::endl;
+        //  << vm["config"].as<std::string>() << ".\n";
+
+    }
+    else 
+    {
+        std::cout << "Config file not passed, using default.\n";
+    }
+
+    return cfgFileName;
+}
 
