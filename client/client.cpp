@@ -10,16 +10,32 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+
+
+
+#include <fstream>
+#include <iterator>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <vector>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 using boost::asio::ip::tcp;
 using std::placeholders::_1;
 using std::placeholders::_2;
+
+template<class T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
+{
+    std::copy(v.begin(), v.end(), std::ostream_iterator<T>(os, " ")); 
+    return os;
+}
 
 enum { max_length = 1024 };
 
@@ -136,27 +152,68 @@ private:
   char reply_[max_length];
 };
 
+//
+// ok how do I want it to start? 
+// well.  Good question.  Just "./client <config file name>" would be nice.
+// let all the other options be in the config file.
+// There should be a default config, and if it does not exist, terimate with an error message.
+// If the config file does not have good entries, terminate with an error message.
+//
+//
 int main(int argc, char* argv[])
 {
   try
   {
-    if (argc != 3)
-    {
-      std::cerr << "Usage: client <host> <port>\n";
-      return 1;
-    }
+      const auto host_name = boost::asio::ip::host_name();
+      std::string cfgFileName = host_name;
+      cfgFileName.append(".cfg");
+      std::cout << "Default config file name: " << cfgFileName << std::endl;
+      std::string config_file;
 
-    boost::asio::io_context io_context;
+      po::options_description cmdline("command line options");
+      cmdline.add_options()
+          ("version,v", "print version string")
+          ("help", "produce help message")
+          ("config,c", po::value<std::string>(&config_file)->default_value(cfgFileName.c_str()),
+           "Config File Name to use instead of default 'hostname.cfg' format.");
 
-    tcp::resolver resolver(io_context);
-    auto endpoints = resolver.resolve(argv[1], argv[2]);
+      po::variables_map vm;
+      po::store(po::parse_command_line(argc, argv, cmdline), vm);
+      po::notify(vm);    
 
-    boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
-    ctx.load_verify_file("ca.pem");
+      if (vm.count("help")) 
+      {
+          std::cout << cmdline << "\n";
+          return 1;
+      }
 
-    client c(io_context, ctx, endpoints);
+      if (vm.count("config")) 
+      {
+          std::cout << "Using Command Line Option Config File: " 
+              << vm["config"].as<std::string>() << ".\n";
+      }
+      else 
+      {
+          std::cout << "Config file not passed, using default.\n";
+      }
 
-    io_context.run();
+      if (argc != 3)
+      {
+          std::cerr << "Usage: client <host> <port>\n";
+          return 1;
+      }
+
+      boost::asio::io_context io_context;
+
+      tcp::resolver resolver(io_context);
+      auto endpoints = resolver.resolve(argv[1], argv[2]);
+
+      boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
+      ctx.load_verify_file("ca.pem");
+
+      client c(io_context, ctx, endpoints);
+
+      io_context.run();
   }
   catch (std::exception& e)
   {

@@ -6,8 +6,9 @@ CLIENT_OBJS := $(addprefix obj/,$(notdir $(CLIENT_SRCS:.cpp=.o)))
 CXX_FLAGS := -g -std=c++17 -pedantic -Wall -Wextra -Werror -Wunreachable-code
 CXX_INC := -I/usr/local/openssl-3.0.8/include -I/usr/local/boost_1_81_0/include
 
-LD_FLAGS := -L/usr/local/openssl-3.0.8/lib64 -I/usr/local/boost_1_81_0/lib -L/usr/lib64
-LD_LIBS := -l:libssl.a -l:libcrypto.a -lpthread -ldl
+LD_FLAGS := -L/usr/local/openssl-3.0.8/lib64 -L/usr/local/boost_1_81_0/lib -L/usr/lib64
+LD_LIBS := -l:libssl.a -l:libcrypto.a -lpthread -ldl -l:libboost_program_options.a
+
 
 .PHONY: all clean
 
@@ -16,7 +17,8 @@ all: obj client
 client: $(CLIENT_OBJS)
 	$(CXX) $(LD_FLAGS) -o $@ $^ $(LD_LIBS)
 
-obj/%.o: $(CLIENT_SRCS)
+##obj/%.o: $(CLIENT_SRCS)
+obj/%.o: %.cpp
 	$(CXX) $(CXX_FLAGS) $(CXX_INC) -c -o $@ $<
 
 obj:
