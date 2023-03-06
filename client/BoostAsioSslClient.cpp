@@ -247,7 +247,17 @@ BoostAsioSslClient::BoostAsioSslClient(
     resolver_(io_context),
     socket_(io_context, sslCtx_)
 {
-    socket_.set_verify_mode(
+    sslCtx_.set_options(
+            boost::asio::ssl::context::default_workarounds |
+            boost::asio::ssl::context::no_sslv2 |
+            boost::asio::ssl::context::no_sslv3 |
+            boost::asio::ssl::context::no_tlsv1 |
+            boost::asio::ssl::context::no_tlsv1_1 |
+            boost::asio::ssl::context::no_tlsv1_2 );
+
+          //  boost::asio::ssl::context::single_dh_use |
+ 
+    sslCtx_.set_verify_mode(
 		    boost::asio::ssl::verify_peer |
 		    boost::asio::ssl::verify_fail_if_no_peer_cert);
 
