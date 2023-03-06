@@ -17,7 +17,12 @@ class ConfigOptions
         {
             return certFileName;
         }
-            
+ 
+        const std::string getCertPrivateKeyFileName( void ) const
+        {
+            return certPrivateKeyFileName;
+        }
+                    
         const std::string getCaFileName( void ) const
         {
             return caFileName;
@@ -51,6 +56,7 @@ class ConfigOptions
 
         std::string configFileName; // passed into constructor, config file to read.
         std::string certFileName;   // our certificate
+        std::string certPrivateKeyFileName;     // our private key that goes with our cert
         std::string caFileName;     // CA chain certs
         std::string serverName;     // server name to connect to, if client
         std::string role = "client";           // computer role, client or server

@@ -49,7 +49,13 @@ int main(
     }
 
     boost::asio::io_context io_context;
-    BoostAsioSslServer s(io_context, atoi(argv[1]));
+    BoostAsioSslServer server(
+            io_context, 
+            config.getCertFileName(),
+            config.getCertPrivateKeyFileName(),
+            config.getCaFileName(),
+            config.getListenPort() );
+
     io_context.run();
   }
   catch (std::exception& e)

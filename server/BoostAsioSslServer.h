@@ -28,7 +28,10 @@ class BoostAsioSslServer
 public:
   BoostAsioSslServer(
           boost::asio::io_context& io_context, 
-          const unsigned short port);
+          const std::string & myCertFile,
+          const std::string & myPrivateKeyFile,
+          const std::string & caCertFile,
+          const int port );
 
 private:
   std::string get_password() const
@@ -40,6 +43,11 @@ private:
 
   tcp::acceptor acceptor_;
   boost::asio::ssl::context context_;
+  const int listenPort_;
+  const std::string caCertFile_;
+  const std::string remoteHost_;
+  const std::string localCertFile_;
+  const std::string localPrivateKeyFile_;
 };
 
 #endif  /* #define BOOST_ASIO_SSL_SERVER_H__ */

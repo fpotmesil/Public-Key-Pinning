@@ -41,6 +41,9 @@ void ConfigOptions::readConfigFile( void )
         ("local_cert", po::value<std::string>(&certFileName), 
          "local computer certificate filename and path")
 
+        ("local_cert_private_key", po::value<std::string>(&certPrivateKeyFileName), 
+         "local computer certificate private key filename and path")
+
         ("ca_chain_cert", po::value<std::string>(&caFileName), 
          "certificate authority cert chain filename and path");
 
@@ -85,6 +88,18 @@ void ConfigOptions::readConfigFile( void )
     else 
     {
         std::cout << "Error: Local computer certificate filename was not provided." << std::endl;
+        exit(1); // ok for now.  should throw an exception.
+    }
+
+    if( vm.count("local_cert_private_key") ) 
+    {
+        std::cout << "Our Local Computer Certificate Private Key is " 
+            << certPrivateKeyFileName << std::endl;
+    }
+    else 
+    {
+        std::cout << "Error: Local computer certificate private key filename was not provided." 
+            << std::endl;
         exit(1); // ok for now.  should throw an exception.
     }
 

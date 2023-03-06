@@ -23,19 +23,51 @@ using boost::asio::ip::tcp;
 
 BoostAsioSslServer::BoostAsioSslServer(
         boost::asio::io_context& io_context, 
-        const unsigned short port)
-    : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
-    context_(boost::asio::ssl::context::sslv23)
+        const std::string & myCertFile,
+        const std::string & myPrivateKeyFile,
+        const std::string & caCertFile,
+        const int port ) :
+    acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
+    context_(boost::asio::ssl::context::tls),
+    listenPort_(port),
+    caCertFile_(caCertFile),
+    localCertFile_(myCertFile),
+    localPrivateKeyFile_(myPrivateKeyFile)
 {
     context_.set_options(
-            boost::asio::ssl::context::default_workarounds
-            | boost::asio::ssl::context::no_sslv2
-            | boost::asio::ssl::context::single_dh_use);
+            boost::asio::ssl::context::default_workarounds |
+            boost::asio::ssl::context::no_sslv2 |
+            boost::asio::ssl::context::no_sslv3 |
+            boost::asio::ssl::context::no_tlsv1 |
+            boost::asio::ssl::context::no_tlsv1_1 |
+            boost::asio::ssl::context::no_tlsv1_2 |
+            boost::asio::ssl::context::single_dh_use |
+            SSL_OP_CIPHER_SERVER_PREFERENCE );
 
-    context_.set_password_callback(std::bind(&BoostAsioSslServer::get_password, this));
-    context_.use_certificate_chain_file("server.pem");
-    context_.use_private_key_file("server.pem", boost::asio::ssl::context::pem);
-    context_.use_tmp_dh_file("dh4096.pem");
+    socket_.set_verify_mode(
+		    boost::asio::ssl::verify_peer |
+		    boost::asio::ssl::verify_fail_if_no_peer_cert);
+
+    //
+    // https://www.boost.org/doc/libs/1_81_0/boost/asio/ssl/host_name_verification.hpp
+    //
+    // Boost host_name_verification verifies a certificate against a host_name
+    // according to the rules described in RFC 6125.
+    //
+    socket_.set_verify_callback(
+		    make_verbose_verification(
+			    boost::asio::ssl::host_name_verification(remoteHost_)));
+			    // boost::asio::ssl::rfc2818_verification(remoteHost_)));
+           //std::bind(&BoostAsioSslClient::verify_certificate, this, _1, _2));
+
+    sslCtx_.load_verify_file(caCertFile_.c_str());
+    sslCtx_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
+    sslCtx_.use_private_key_file(localPrivateKeyFile_.c_str(), boost::asio::ssl::context::pem);
+
+    // context_.set_password_callback(std::bind(&BoostAsioSslServer::get_password, this));
+    // context_.use_certificate_chain_file("server.pem");
+    // context_.use_private_key_file("server.pem", boost::asio::ssl::context::pem);
+    // context_.use_tmp_dh_file("dh4096.pem");
 
     do_accept();
 }

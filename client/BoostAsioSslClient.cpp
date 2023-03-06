@@ -31,9 +31,12 @@ public:
     char subject_name[256];
     X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+
     bool verified = verifier_(preverified, ctx);
     std::cout << "Verifying: " << subject_name << "\n"
                  "Verified: " << verified << std::endl;
+
+
     return verified;
   }
 private:
@@ -51,6 +54,7 @@ make_verbose_verification(Verifier verifier)
 BoostAsioSslClient::BoostAsioSslClient(
         boost::asio::io_context & io_context,
         const std::string & myCertFile,
+        const std::string & myPrivateKeyFile,
         const std::string & caCertFile,
         const std::string & hostname,
         const int port ) : 
@@ -58,6 +62,7 @@ BoostAsioSslClient::BoostAsioSslClient(
     caCertFile_(caCertFile),
     remoteHost_(hostname),
     localCertFile_(myCertFile),
+    localPrivateKeyFile_(myPrivateKeyFile),
     sslCtx_(boost::asio::ssl::context::tls),
     resolver_(io_context),
     socket_(io_context, sslCtx_)
@@ -80,6 +85,7 @@ BoostAsioSslClient::BoostAsioSslClient(
 
     sslCtx_.load_verify_file(caCertFile_.c_str());
     sslCtx_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
+    sslCtx_.use_private_key_file(localPrivateKeyFile_.c_str(), boost::asio::ssl::context::pem);
     endpoints_ = resolver_.resolve(remoteHost_, std::to_string(remotePort_));
     connect(endpoints_);
 }
