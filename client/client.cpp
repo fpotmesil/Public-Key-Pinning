@@ -43,41 +43,40 @@ std::string readCommandLineOptions(
 //
 int main(const int argc, const char* argv[])
 {
-  try
-  {
-      std::string configFile = readCommandLineOptions(argc, argv);
-      ConfigOptions config( configFile.c_str() );
+    try
+    {
+        std::string configFile = readCommandLineOptions(argc, argv);
+        ConfigOptions config( configFile.c_str() );
 
-      if (argc != 3)
-      {
-          std::cerr << "Usage: client <host> <port>\n";
-          return 1;
-      }
+        if (argc != 3)
+        {
+            std::cerr << "Usage: client <host> <port>\n";
+            return 1;
+        }
 
-      //
-      // FJP DEBUG
-      //
-          std::cerr << "Fred is still developing!!: client <host> <port>\n";
-          return 1;
+        //
+        // FJP DEBUG
+        //
+        std::cerr << "Fred is still developing!!: client <host> <port>\n";
+        return 1;
 
-      boost::asio::io_context io_context;
+        boost::asio::io_context io_context;
 
-      tcp::resolver resolver(io_context);
-      auto endpoints = resolver.resolve(argv[1], argv[2]);
+        BoostAsioSslClient client(
+                io_context, 
+                config.getCertFileName(),
+                config.getCaFileName(),
+                config.getServerName(),
+                config.getServerPort() );
 
-      boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
-      ctx.load_verify_file("ca.pem");
+        io_context.run();
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
 
-      BoostAsioSslClient c(io_context, ctx, endpoints);
-
-      io_context.run();
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "Exception: " << e.what() << "\n";
-  }
-
-  return 0;
+    return 0;
 }
 
 std::string readCommandLineOptions(

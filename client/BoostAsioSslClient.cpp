@@ -11,17 +11,70 @@
 
 #include "BoostAsioSslClient.h"
 
-BoostAsioSslClient::BoostAsioSslClient(
-        boost::asio::io_context& io_context,
-        boost::asio::ssl::context& context,
-        const tcp::resolver::results_type& endpoints)
-    : socket_(io_context, context)
-{
-    socket_.set_verify_mode(boost::asio::ssl::verify_peer);
-    socket_.set_verify_callback(
-            std::bind(&BoostAsioSslClient::verify_certificate, this, _1, _2));
 
-    connect(endpoints);
+///@brief Helper class that prints the current certificate's subject
+///       name and the verification results.
+// https://stackoverflow.com/questions/28264313/ssl-certificates-and-boost-asio
+//
+template <typename Verifier>
+class verbose_verification
+{
+public:
+  verbose_verification(Verifier verifier)
+    : verifier_(verifier)
+  {}
+
+  bool operator()(
+    bool preverified,
+    boost::asio::ssl::verify_context& ctx )
+  {
+    char subject_name[256];
+    X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+    X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+    bool verified = verifier_(preverified, ctx);
+    std::cout << "Verifying: " << subject_name << "\n"
+                 "Verified: " << verified << std::endl;
+    return verified;
+  }
+private:
+  Verifier verifier_;
+};
+
+///@brief Auxiliary function to make verbose_verification objects.
+template <typename Verifier>
+verbose_verification<Verifier>
+make_verbose_verification(Verifier verifier)
+{
+  return verbose_verification<Verifier>(verifier);
+}
+
+BoostAsioSslClient::BoostAsioSslClient(
+        boost::asio::io_context & io_context,
+        const std::string & myCertFile,
+        const std::string & caCertFile,
+        const std::string & hostname,
+        const int port ) : 
+    remotePort_(port),
+    caCertFile_(caCertFile),
+    remoteHost_(hostname),
+    localCertFile_(myCertFile),
+    sslCtx_(boost::asio::ssl::context::tls),
+    resolver_(io_context),
+    socket_(io_context, sslCtx_)
+{
+    socket_.set_verify_mode(
+		    boost::asio::ssl::verify_peer |
+		    boost::asio::ssl::verify_fail_if_no_peer_cert);
+
+    socket_.set_verify_callback(
+		    make_verbose_verification(
+			    boost::asio::ssl::rfc2818_verification(remoteHost_)));
+           //std::bind(&BoostAsioSslClient::verify_certificate, this, _1, _2));
+
+    sslCtx_.load_verify_file(caCertFile_.c_str());
+    sslCtx_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
+    endpoints_ = resolver_.resolve(remoteHost_, std::to_string(remotePort_));
+    connect(endpoints_);
 }
 
 bool BoostAsioSslClient::verify_certificate(

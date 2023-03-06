@@ -29,9 +29,15 @@ enum { max_length = 1024 };
 class BoostAsioSslClient
 {
     public:
-        BoostAsioSslClient(boost::asio::io_context& io_context,
-                boost::asio::ssl::context& context,
-                const tcp::resolver::results_type& endpoints);
+        BoostAsioSslClient( 
+                boost::asio::io_context & io_context,
+                const std::string & myCertFile,
+                const std::string & caCertFile,
+                const std::string & hostname,
+                const int port );
+
+                // boost::asio::ssl::context& context,
+                // const tcp::resolver::results_type& endpoints);
 
     private:
         bool verify_certificate(bool preverified,
@@ -45,9 +51,16 @@ class BoostAsioSslClient
 
         void receive_response(std::size_t length);
 
-        boost::asio::ssl::stream<tcp::socket> socket_;
+        const int remotePort_;
         char request_[max_length];
         char reply_[max_length];
+        const std::string caCertFile_;
+        const std::string remoteHost_;
+        const std::string localCertFile_;
+        boost::asio::ssl::context sslCtx_;
+        boost::asio::ip::tcp::resolver resolver_; // (io_context);
+        boost::asio::ssl::stream<tcp::socket> socket_;
+        boost::asio::ip::tcp::resolver::results_type endpoints_; // (io_context);
 };
 
 
