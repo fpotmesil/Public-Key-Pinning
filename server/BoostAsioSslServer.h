@@ -43,6 +43,7 @@ private:
 
   tcp::acceptor acceptor_;
   boost::asio::ssl::context context_;
+  boost::asio::io_context & io_context_;
   const int listenPort_;
   const std::string caCertFile_;
   const std::string remoteHost_;

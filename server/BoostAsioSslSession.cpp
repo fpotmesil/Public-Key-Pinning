@@ -59,17 +59,23 @@ make_verbose_verification(Verifier verifier)
 }
 
 BoostAsioSslSession::BoostAsioSslSession(
-        boost::asio::ssl::stream<tcp::socket> socket ) :
-    socket_( std::move(socket) ),
-    remoteEndpoint_(socket_.lowest_layer().remote_endpoint())
+            tcp::socket socket,
+            boost::asio::ssl::context & ctx,
+            const std::string & remoteHostname ) :
+    socket_( std::move(socket), ctx ),
+    context_(ctx),
+    remoteEndpoint_(socket_.lowest_layer().remote_endpoint()),
+    remoteHostname_(remoteHostname)
 {
-    std::cout << "In BoostAsioSslSession Constructor.  Setting verify mode... "
-	    << std::endl;
+    std::cout << "In BoostAsioSslSession Constructor.  Remote Endpoint is: " 
+        << remoteEndpoint_.address().to_string() << std::endl;
 
-    socket_.set_verify_mode(
-            boost::asio::ssl::verify_peer |
-            boost::asio::ssl::verify_fail_if_no_peer_cert);
-
+    //
+   //socket_.set_verify_mode(
+   //         boost::asio::ssl::verify_peer |
+   //         boost::asio::ssl::verify_fail_if_no_peer_cert);
+    //
+#if 1
     //
     // https://www.boost.org/doc/libs/1_81_0/boost/asio/ssl/host_name_verification.hpp
     //
@@ -78,28 +84,41 @@ BoostAsioSslSession::BoostAsioSslSession(
     //
     socket_.set_verify_callback(
             make_verbose_verification(
-                boost::asio::ssl::host_name_verification(
-                    remoteEndpoint_.address().to_string())));
+                boost::asio::ssl::host_name_verification(remoteHostname_.c_str())));
+                // boost::asio::ssl::rfc2818_verification(
+                //    remoteEndpoint_.address().to_string())));
     //
     // boost::asio::ssl::rfc2818_verification(
     //      remoteEndpoint_.address().to_string()Host_)));
     //
-    //std::bind(&BoostAsioSslSession::verify_certificate, this, _1, _2));
+#else
+    std::bind(&BoostAsioSslSession::verify_certificate, this, _1, _2);
+#endif
 }
 
 
 void BoostAsioSslSession::do_handshake( void )
 {
     auto self(shared_from_this());
+
+	std::cout << "Server starting async_handshake now...."
+				<< std::endl;
+
     socket_.async_handshake(boost::asio::ssl::stream_base::server, 
             [this, self](const boost::system::error_code& error)
             {
 		    if (!error)
 		    {
-			std::cout << "After async_handshake, SSL Session calling do_read"
-				<< std::endl;
-			do_read();
+			    std::cout << "After async_handshake, SSL Session calling do_read"
+				    << std::endl;
+			    do_read();
 		    }
+            else
+            {
+			    std::cout << "async_handshake ERROR from " 
+                    << remoteEndpoint_.address().to_string() 
+                    <<": " << error.message() << std::endl;
+            }
             });
 }
 
