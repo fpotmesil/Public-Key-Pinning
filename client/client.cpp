@@ -49,8 +49,27 @@ int main(const int argc, const char* argv[])
         ConfigOptions config( configFile.c_str() );
         boost::asio::io_context io_context;
 
+        boost::asio::ssl::context sslCtx(boost::asio::ssl::context::tls);
+    sslCtx.set_options(
+            boost::asio::ssl::context::default_workarounds |
+            boost::asio::ssl::context::no_sslv2 |
+            boost::asio::ssl::context::no_sslv3 |
+            boost::asio::ssl::context::no_tlsv1 |
+            boost::asio::ssl::context::no_tlsv1_1 |
+            boost::asio::ssl::context::no_tlsv1_2 );
+          //  boost::asio::ssl::context::single_dh_use |
+ 
+    sslCtx.set_verify_mode(
+		    boost::asio::ssl::verify_peer |
+		    boost::asio::ssl::verify_fail_if_no_peer_cert);
+    sslCtx.load_verify_file(config.getCaFileName().c_str());
+    // sslCtx_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
+    sslCtx.use_certificate_chain_file(config.getCertFileName().c_str());
+    sslCtx.use_private_key_file(config.getCertPrivateKeyFileName().c_str(), boost::asio::ssl::context::pem);
+ 
         BoostAsioSslClient client(
                 io_context, 
+                sslCtx,
                 config.getCertFileName(),
                 config.getCertPrivateKeyFileName(),
                 config.getCaFileName(),

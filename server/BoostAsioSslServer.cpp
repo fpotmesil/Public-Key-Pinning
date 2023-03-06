@@ -53,7 +53,7 @@ BoostAsioSslServer::BoostAsioSslServer(
 
     context_.set_verify_mode(
             boost::asio::ssl::verify_peer |
-            boost::asio::ssl::verify_client_once |
+            // boost::asio::ssl::verify_client_once |
             boost::asio::ssl::verify_fail_if_no_peer_cert);
 
     SSL_CTX * ctx = context_.native_handle();

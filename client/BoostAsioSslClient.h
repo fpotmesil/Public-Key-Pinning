@@ -31,6 +31,7 @@ class BoostAsioSslClient
     public:
         BoostAsioSslClient( 
                 boost::asio::io_context & io_context,
+                boost::asio::ssl::context & sslCtx,
                 const std::string & myCertFile,
                 const std::string & myPrivateKeyFile,
                 const std::string & caCertFile,

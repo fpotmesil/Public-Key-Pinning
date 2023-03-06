@@ -233,6 +233,7 @@ int BoostAsioSslClient::pkp_verify_cb(
 
 BoostAsioSslClient::BoostAsioSslClient(
         boost::asio::io_context & io_context,
+        boost::asio::ssl::context & sslCtx,
         const std::string & myCertFile,
         const std::string & myPrivateKeyFile,
         const std::string & caCertFile,
@@ -245,7 +246,7 @@ BoostAsioSslClient::BoostAsioSslClient(
     localPrivateKeyFile_(myPrivateKeyFile),
     sslCtx_(boost::asio::ssl::context::tls),
     resolver_(io_context),
-    socket_(io_context, sslCtx_)
+    socket_(io_context, sslCtx)
 {
     sslCtx_.set_options(
             boost::asio::ssl::context::default_workarounds |
