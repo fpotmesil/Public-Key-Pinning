@@ -33,34 +33,22 @@ int main(
 {
   try
   {
-      std::string configFile = readCommandLineOptions(argc, argv);
-      ConfigOptions config( configFile.c_str() );
+      	std::string configFile = readCommandLineOptions(argc, argv);
+      	ConfigOptions config( configFile.c_str() );
 
-      //
-      // FJP DEBUG
-      //
-          std::cerr << "Fred is still developing!!: client <host> <port>\n";
-          return 1;
-
-    if (argc != 2)
-    {
-      std::cerr << "Usage: server <port>\n";
-      return 1;
-    }
-
-    boost::asio::io_context io_context;
-    BoostAsioSslServer server(
+    	boost::asio::io_context io_context;
+    	BoostAsioSslServer server(
             io_context, 
             config.getCertFileName(),
             config.getCertPrivateKeyFileName(),
             config.getCaFileName(),
             config.getListenPort() );
 
-    io_context.run();
+   	io_context.run();
   }
   catch (std::exception& e)
   {
-    std::cerr << "Exception: " << e.what() << "\n";
+    	std::cerr << "Exception: " << e.what() << "\n";
   }
 
   return 0;
