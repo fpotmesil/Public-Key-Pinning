@@ -63,6 +63,9 @@ BoostAsioSslSession::BoostAsioSslSession(
     socket_( std::move(socket) ),
     remoteEndpoint_(socket_.lowest_layer().remote_endpoint())
 {
+    std::cout << "In BoostAsioSslSession Constructor.  Setting verify mode... "
+	    << std::endl;
+
     socket_.set_verify_mode(
             boost::asio::ssl::verify_peer |
             boost::asio::ssl::verify_fail_if_no_peer_cert);
@@ -91,10 +94,12 @@ void BoostAsioSslSession::do_handshake( void )
     socket_.async_handshake(boost::asio::ssl::stream_base::server, 
             [this, self](const boost::system::error_code& error)
             {
-            if (!error)
-            {
-            do_read();
-            }
+		    if (!error)
+		    {
+			std::cout << "After async_handshake, SSL Session calling do_read"
+				<< std::endl;
+			do_read();
+		    }
             });
 }
 

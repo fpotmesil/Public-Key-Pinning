@@ -24,7 +24,7 @@ class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSess
 {
     public:
         BoostAsioSslSession(
-                boost::asio::ssl::stream<tcp::socket> socket );
+            boost::asio::ssl::stream<tcp::socket> socket );
 
         void start( void )
         {

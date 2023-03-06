@@ -40,9 +40,24 @@ BoostAsioSslServer::BoostAsioSslServer(
             boost::asio::ssl::context::no_sslv3 |
             boost::asio::ssl::context::no_tlsv1 |
             boost::asio::ssl::context::no_tlsv1_1 |
-            boost::asio::ssl::context::no_tlsv1_2 |
+            // boost::asio::ssl::context::no_tlsv1_2 |
             boost::asio::ssl::context::single_dh_use |
             SSL_OP_CIPHER_SERVER_PREFERENCE );
+
+    context_.set_verify_mode(
+            boost::asio::ssl::verify_peer |
+            boost::asio::ssl::verify_fail_if_no_peer_cert);
+
+    //
+    // https://www.boost.org/doc/libs/1_81_0/boost/asio/ssl/host_name_verification.hpp
+    //
+    // Boost host_name_verification verifies a certificate against a host_name
+    // according to the rules described in RFC 6125.
+    //
+    // socket_.set_verify_callback(
+    //        make_verbose_verification(
+    //            boost::asio::ssl::host_name_verification(
+    //                remoteEndpoint_.address().to_string())));
 
     context_.load_verify_file(caCertFile_.c_str());
     context_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
