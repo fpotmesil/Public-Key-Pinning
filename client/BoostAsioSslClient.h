@@ -42,6 +42,10 @@ class BoostAsioSslClient
 
     private:
 
+        //
+        // functions with name prefix 'pkp_' were taken from OWASP PKP examples at
+        // https://owasp.org/www-community/controls/Certificate_and_Public_Key_Pinning
+        //
         void pkp_print_san_name(
                 const char * label,
                 X509* const cert, 
