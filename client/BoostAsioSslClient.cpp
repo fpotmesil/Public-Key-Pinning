@@ -254,7 +254,6 @@ BoostAsioSslClient::BoostAsioSslClient(
             boost::asio::ssl::context::no_tlsv1 |
             boost::asio::ssl::context::no_tlsv1_1 |
             boost::asio::ssl::context::no_tlsv1_2 );
-
           //  boost::asio::ssl::context::single_dh_use |
  
     sslCtx_.set_verify_mode(
@@ -274,7 +273,8 @@ BoostAsioSslClient::BoostAsioSslClient(
            //std::bind(&BoostAsioSslClient::verify_certificate, this, _1, _2));
 
     sslCtx_.load_verify_file(caCertFile_.c_str());
-    sslCtx_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
+    // sslCtx_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
+    sslCtx_.use_certificate_chain_file(localCertFile_.c_str());
     sslCtx_.use_private_key_file(localPrivateKeyFile_.c_str(), boost::asio::ssl::context::pem);
     endpoints_ = resolver_.resolve(remoteHost_, std::to_string(remotePort_));
     connect(endpoints_);
