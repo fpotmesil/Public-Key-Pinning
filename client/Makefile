@@ -4,10 +4,17 @@ CLIENT_OBJS := $(addprefix obj/,$(notdir $(CLIENT_SRCS:.cpp=.o)))
 
 #CXX_FLAGS := -g -std=c++17 -pedantic -Wall -Wextra -Wshadow -Wconversion -Werror -Wunreachable-code
 CXX_FLAGS := -g -std=c++17 -pedantic -Wall -Wextra -Werror -Wunreachable-code
-CXX_INC := -I/usr/local/openssl-3.0.8/include -I/usr/local/boost_1_81_0/include
+#
+# For RHEL snapperhead, this is the include line to use:
+#
+# CXX_INC := -I/usr/local/openssl-3.0.8/include -I/usr/local/boost_1_81_0/include
+#
+# For Pi, this is the include line to use:
+#
+CXX_INC := -I/usr/include
 
 LD_FLAGS := -L/usr/local/openssl-3.0.8/lib64 -L/usr/local/boost_1_81_0/lib -L/usr/lib64
-LD_LIBS := -l:libssl.a -l:libcrypto.a -lpthread -ldl -l:libboost_program_options.a
+LD_LIBS := -l:libssl.a -l:libcrypto.a -lpthread -ldl -l:libboost_program_options.a -l:libboost_system.a
 
 
 .PHONY: all clean
