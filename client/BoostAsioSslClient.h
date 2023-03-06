@@ -41,6 +41,21 @@ class BoostAsioSslClient
                 // const tcp::resolver::results_type& endpoints);
 
     private:
+
+        void pkp_print_san_name(
+                const char * label,
+                X509* const cert, 
+                int nid);
+
+        void pkp_print_cn_name(
+                const char* label,
+                X509_NAME* const name,
+                int nid);
+
+        int pkp_verify_cb(
+                int preverify, 
+                X509_STORE_CTX * x509_ctx );
+
         bool verify_certificate(bool preverified,
                 boost::asio::ssl::verify_context& ctx);
 
