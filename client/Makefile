@@ -14,7 +14,7 @@ CXX_FLAGS := -g -std=c++17 -pedantic -Wall -Wextra -Werror -Wunreachable-code
 CXX_INC := -I/usr/include
 
 LD_FLAGS := -L/usr/local/openssl-3.0.8/lib64 -L/usr/local/boost_1_81_0/lib -L/usr/lib64
-LD_LIBS := -l:libssl.a -l:libcrypto.a -lpthread -ldl -l:libboost_program_options.a
+LD_LIBS := -l:libssl.a -l:libcrypto.a -lpthread -ldl -l:libboost_program_options.a -l:libboost_system.a
 
 
 .PHONY: all clean

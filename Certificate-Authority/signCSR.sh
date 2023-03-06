@@ -42,7 +42,6 @@ then
     read -p "Enter the signing mode to use: client|server: " signingMode
 fi
 
-cd CA
 extensions=server_cert
 local orig_nocasematch=$(shopt -p nocasematch; true)
 shopt -s nocasematch
@@ -64,8 +63,10 @@ echo "CSR filename is $filename, written out as $filename.cert.pem, using extens
 outputCertFile="$filename.cert.pem"
 read -p "Continue? (Y/N): " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
 
-
-openssl ca -config  Intermediate/cnf/intermediate_ca.cnf -in $csrFileName -out Certificates/$outputCertFile -extensions/$extensions
+echo "Moving $csrFileName to CSR directory: CA/Intermediate/csr"
+mv $csrFileName CA/Intermediate/csr 
+cd CA
+openssl ca -config  Intermediate/cnf/intermediate_ca.cnf -in Intermediate/csr/$csrFileName -out Certificates/$outputCertFile -extensions $extensions
 cd ../
 
 

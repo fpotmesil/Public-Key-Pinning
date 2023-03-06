@@ -47,19 +47,6 @@ int main(const int argc, const char* argv[])
     {
         std::string configFile = readCommandLineOptions(argc, argv);
         ConfigOptions config( configFile.c_str() );
-
-        if (argc != 3)
-        {
-            std::cerr << "Usage: client <host> <port>\n";
-            return 1;
-        }
-
-        //
-        // FJP DEBUG
-        //
-        std::cerr << "Fred is still developing!!: client <host> <port>\n";
-        return 1;
-
         boost::asio::io_context io_context;
 
         BoostAsioSslClient client(
