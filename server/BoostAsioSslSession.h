@@ -23,10 +23,8 @@ using boost::asio::ip::tcp;
 class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSession>
 {
     public:
-        BoostAsioSslSession(boost::asio::ssl::stream<tcp::socket> socket)
-            : socket_(std::move(socket))
-        {
-        }
+        BoostAsioSslSession(
+                boost::asio::ssl::stream<tcp::socket> socket );
 
         void start( void )
         {
@@ -39,6 +37,7 @@ class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSess
         void do_write(std::size_t length);
 
         boost::asio::ssl::stream<tcp::socket> socket_;
+        const boost::asio::ip::tcp::endpoint remoteEndpoint_;
         char data_[1024];
 };
 
