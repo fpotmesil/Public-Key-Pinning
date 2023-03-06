@@ -19,28 +19,31 @@
 template <typename Verifier>
 class verbose_verification
 {
-public:
-  verbose_verification(Verifier verifier)
-    : verifier_(verifier)
-  {}
+    public:
+        verbose_verification(Verifier verifier)
+            : verifier_(verifier) {}
 
-  bool operator()(
-    bool preverified,
-    boost::asio::ssl::verify_context& ctx )
-  {
-    char subject_name[256];
-    X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
-    X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+        bool operator()(
+                bool preverified,
+                boost::asio::ssl::verify_context& ctx )
+        {
+            int verifyRval = BoostAsioSslClient::pkp_verify_cb(
+                    preverified, ctx.native_handle() );
+            std::cout << "Initial verify callback rval: " << verifyRval << std::endl;
 
-    bool verified = verifier_(preverified, ctx);
-    std::cout << "Verifying: " << subject_name << "\n"
-                 "Verified: " << verified << std::endl;
+            char subject_name[256];
+            X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+            X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+
+            bool verified = verifier_(preverified, ctx);
+            std::cout << "Verifying: " << subject_name << "\n"
+                "Verified: " << verified << std::endl;
 
 
-    return verified;
-  }
-private:
-  Verifier verifier_;
+            return verified;
+        }
+    private:
+        Verifier verifier_;
 };
 
 ///@brief Auxiliary function to make verbose_verification objects.

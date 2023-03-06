@@ -40,26 +40,25 @@ class BoostAsioSslClient
                 // boost::asio::ssl::context& context,
                 // const tcp::resolver::results_type& endpoints);
 
-    private:
-
         //
         // functions with name prefix 'pkp_' were taken from OWASP PKP examples at
         // https://owasp.org/www-community/controls/Certificate_and_Public_Key_Pinning
         //
-        void pkp_print_san_name(
+        static void pkp_print_san_name(
                 const char * label,
                 X509* const cert, 
                 int nid);
 
-        void pkp_print_cn_name(
+        static void pkp_print_cn_name(
                 const char* label,
                 X509_NAME* const name,
                 int nid);
 
-        int pkp_verify_cb(
+        static int pkp_verify_cb(
                 int preverify, 
                 X509_STORE_CTX * x509_ctx );
 
+    private:
         bool verify_certificate(bool preverified,
                 boost::asio::ssl::verify_context& ctx);
 
