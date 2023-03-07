@@ -8,7 +8,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <sstream>
 
+#include "Base64.h"
+#include "HashFunctions.h"
+#include "BoostAsioSslClient.h"
 #include "BoostAsioSslClient.h"
 
 
@@ -355,30 +359,80 @@ void BoostAsioSslClient::checkPinnedPublicKey( void )
 {
     FILE* fp = NULL;
 
-    X509 * cert = NULL;
     unsigned char *buff1 = NULL;
     unsigned char *buff2 = NULL;
     
     int ret = 0;
     bool result = false;
+
+    /* http://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html */
+    X509 * cert = SSL_get_peer_certificate(socket_.native_handle());
+    long ssl_err = ERR_get_error();
+
+    if( NULL == cert ) 
+    {
+        std::ostringstream error;
+        error << "SSL_get_peer_certificate Error: [" << ssl_err << "]" << std::endl;
+        throw std::runtime_error(error.str());  // better catch this!
+    }
+
+    //
+    // first step is to get the DER format of the Public Key.
+    //
+    // X509_get_X509_PUBKEY() returns an internal pointer to the 
+    // X509_PUBKEY structure which encodes the certificate of x. 
+    // The returned value must not be freed up after use.
+    //
+    // The X509_PUBKEY structure represents the ASN.1 SubjectPublicKeyInfo 
+    // structure defined in RFC5280 and used in certificates and certificate requests.
+    //
+    // i2d_TYPE() encodes the structure pointed to by a into DER format.
+    //
+    // If ppout is not NULL, it writes the DER encoded data to the buffer 
+    // at *ppout, and increments it to point after the data just written.
+    // If the return value is negative an error occurred, otherwise it 
+    // returns the length of the encoded data.
+    //
+    // If *ppout is NULL memory will be allocated for a buffer and the encoded 
+    // data written to it. In this case *ppout is not incremented and it points
+    // to the start of the data just written.
+    //
+    unsigned char * pubKeyBuffer = NULL;
+    int pubKeyLen = i2d_X509_PUBKEY( X509_get_X509_PUBKEY(cert), &pubKeyBuffer );
+    ssl_err = (long)ERR_get_error();
+
+    if( pubKeyLen <= 0 )
+    {
+        if( pubKeyBuffer != NULL ) OPENSSL_free(pubKeyBuffer);
+        std::ostringstream error;
+        error << "i2d_X509_PUBKEY Error: [" << ssl_err << "]" << std::endl;
+        throw std::runtime_error(error.str());  // better catch this!
+    }
+
+    std::cout << "The DER encoded X509_PUBKEY structure is " 
+        << pubKeyLen << " bytes." << std::endl;
+
+    //
+    // next step is to SHA512 our DER encoded X509_PUBKEY structure in pubKeyBuffer
+    //
+
+
     
+
+
+
+    if( pubKeyBuffer != NULL ) OPENSSL_free(pubKeyBuffer);
+
     do
     {
-        /* http://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html */
-        cert = SSL_get_peer_certificate(socket_.native_handle());
-        long ssl_err = (long)ERR_get_error();
+
+
         
-        if( NULL == cert ) 
-        {
-            pkp_display_error("SSL_get_peer_certificate", ssl_err);
-            break; /* failed */
-        }
         
         /* Begin Gyrations to get the subjectPublicKeyInfo       */
         /* Thanks to Viktor Dukhovni on the OpenSSL mailing list */
-        
         /* http://groups.google.com/group/mailing.openssl.users/browse_thread/thread/d61858dae102c6c7 */
-        int len1 = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), NULL);
+        int len1 = i2d_X509_PUBKEY( X509_get_X509_PUBKEY(cert), NULL );
         ssl_err = (long)ERR_get_error();
         
         if( len1 <= 0 )
