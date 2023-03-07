@@ -321,16 +321,28 @@ void BoostAsioSslClient::connect(const tcp::resolver::results_type& endpoints)
 void BoostAsioSslClient::handshake( void )
 {
     socket_.async_handshake(boost::asio::ssl::stream_base::client,
-            [this](const boost::system::error_code& error)
+        [this](const boost::system::error_code& error)
             {
-            if (!error)
-            {
-            send_request();
-            }
-            else
-            {
-            std::cout << "Handshake failed: " << error.message() << "\n";
-            }
+                if (!error)
+                {
+                    SSL * ssl = socket_.native_handle();
+                    (void)ssl; // for now to get rid of error warning
+
+                     if (X509* cert = SSL_get_peer_certificate(socket_.native_handle()))
+                     {
+                        (void)cert; // for now to get rid of error warning
+                       if (SSL_get_verify_result(socket_.native_handle()) == X509_V_OK)
+                       {
+                         
+                       }
+                     }
+
+                    send_request();
+                }
+                else
+                {
+                    std::cout << "Handshake failed: " << error.message() << "\n";
+                }
             });
 }
 
