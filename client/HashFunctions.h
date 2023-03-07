@@ -8,7 +8,9 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 
-bool computeHash(const std::string& unhashed, std::string& hashed);
+bool computeHash(
+        const std::string & unhashed,
+        std::string & hashed);
 // std::string sha256(const std::string str);
 
 

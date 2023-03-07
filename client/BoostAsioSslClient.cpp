@@ -415,13 +415,26 @@ void BoostAsioSslClient::checkPinnedPublicKey( void )
     //
     // next step is to SHA512 our DER encoded X509_PUBKEY structure in pubKeyBuffer
     //
-
-
-    
-
-
-
+    std::string input((char*)pubKeyBuffer, pubKeyLen);
     if( pubKeyBuffer != NULL ) OPENSSL_free(pubKeyBuffer);
+    std::string hashedPUBKEY;
+    
+    if( !computeHash(input,hashedPUBKEY) )
+    {
+        std::ostringstream error;
+        error << "Error computing hash for DER encoded X509_PUBKEY structure." << std::endl;
+        throw std::runtime_error(error.str());  // better catch this!
+    }
+
+    //
+    // next step is to base64 encode our hashed DER encoded X509_PUBKEY string value.
+    //
+    std::vector<unsigned char> hashed(hashedPUBKEY.begin(), hashedPUBKEY.end());
+    std::string base64PUBKEY = Base64Encode(hashed);
+
+    std::cout << "The base64 encoded X509_PUBKEY structure is " 
+        << base64PUBKEY.length() << " bytes: " << base64PUBKEY << std::endl;
+
 
     do
     {
