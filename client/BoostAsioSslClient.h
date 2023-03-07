@@ -60,15 +60,15 @@ class BoostAsioSslClient
                 X509_STORE_CTX * x509_ctx );
 
     private:
-        bool verify_certificate(bool preverified,
+
+        bool verify_certificate(
+                bool preverified,
                 boost::asio::ssl::verify_context& ctx);
 
         void connect(const tcp::resolver::results_type& endpoints);
-
+        void checkPinnedPublicKey( void );
         void handshake( void );
-
         void send_request( void );
-
         void receive_response(std::size_t length);
 
         const int remotePort_;
