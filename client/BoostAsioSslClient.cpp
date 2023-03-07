@@ -413,9 +413,9 @@ void BoostAsioSslClient::checkPinnedPublicKey( void )
             break; /* failed */
         }
 
-        if( NULL != temp )
+        if( NULL == temp )
         {
-            pkp_display_error("i2d_X509_PUBKEY: (NULL != temp)", ssl_err);
+            pkp_display_error("i2d_X509_PUBKEY: (NULL == temp)", ssl_err);
             break; /* failed */
         }
 
