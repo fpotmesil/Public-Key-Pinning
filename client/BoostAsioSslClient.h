@@ -67,7 +67,7 @@ class BoostAsioSslClient
                 boost::asio::ssl::verify_context& ctx);
 
         void connect(const tcp::resolver::results_type& endpoints);
-        void checkPinnedPublicKey( void );
+        bool checkPinnedPublicKey( void );
         void handshake( void );
         void send_request( void );
         void receive_response(std::size_t length);

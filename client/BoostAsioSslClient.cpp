@@ -58,26 +58,6 @@ make_verbose_verification(Verifier verifier)
 }
 
 
-void pkp_display_error(const char* msg, long err)
-{
-    if(err == 0x14090086)
-        fprintf(stderr, "Error: %s: SSL3_GET_SERVER_CERTIFICATE: certificate verify failed (%ld, %lx)\n", msg, err, err);
-    else if (err == 0)
-        fprintf(stderr, "Error: %s\n", msg);
-    else if(err < 10)
-        fprintf(stderr, "Error: %s: %ld\n", msg, err);
-    else
-        fprintf(stderr, "Error: %s: %ld (%lx)\n", msg, err, err);
-}
-
-void pkp_display_warning(const char* msg, long err)
-{
-    if(err < 10)
-        fprintf(stdout, "Warning: %s: %ld\n", msg, err);
-    else
-        fprintf(stdout, "Warning: %s: %ld (%lx)\n", msg, err, err);
-}
-
 void BoostAsioSslClient::pkp_print_cn_name(
         const char* label,
         X509_NAME* const name,
@@ -303,6 +283,7 @@ BoostAsioSslClient::BoostAsioSslClient(
     // sslCtx_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
     sslCtx_.use_certificate_chain_file(localCertFile_.c_str());
     sslCtx_.use_private_key_file(localPrivateKeyFile_.c_str(), boost::asio::ssl::context::pem);
+
     populateAcceptableConnectionsMap( hashDataFile_, acceptableHostsMap_ );
     endpoints_ = resolver_.resolve(remoteHost_, std::to_string(remotePort_));
     connect(endpoints_);
@@ -357,19 +338,12 @@ void BoostAsioSslClient::connect(const tcp::resolver::results_type& endpoints)
 /* on file. The key on file is what we expect to get from the server.      */
 /* lots of this code from owasp pkp_pin_peer_pubkey(SSL* ssl) function     */
 /***************************************************************************/
-void BoostAsioSslClient::checkPinnedPublicKey( void )
+bool BoostAsioSslClient::checkPinnedPublicKey( void )
 {
-    FILE* fp = NULL;
-
-    unsigned char *buff1 = NULL;
-    unsigned char *buff2 = NULL;
-    
-    int ret = 0;
-    bool result = false;
-
     /* http://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html */
     X509 * cert = SSL_get_peer_certificate(socket_.native_handle());
     long ssl_err = ERR_get_error();
+    bool rval = false;
 
     if( NULL == cert ) 
     {
@@ -438,213 +412,7 @@ void BoostAsioSslClient::checkPinnedPublicKey( void )
         << base64PUBKEY.length() << " bytes: " << base64PUBKEY << std::endl;
 
 
-    do
-    {
 
-
-        
-        
-        /* Begin Gyrations to get the subjectPublicKeyInfo       */
-        /* Thanks to Viktor Dukhovni on the OpenSSL mailing list */
-        /* http://groups.google.com/group/mailing.openssl.users/browse_thread/thread/d61858dae102c6c7 */
-        int len1 = i2d_X509_PUBKEY( X509_get_X509_PUBKEY(cert), NULL );
-        ssl_err = (long)ERR_get_error();
-        
-        if( len1 <= 0 )
-        {
-            pkp_display_error("i2d_X509_PUBKEY (1)", ssl_err);
-            break; /* failed */
-        }
-        
-        /* scratch */
-        unsigned char* temp = NULL;
-        
-        /* http://www.openssl.org/docs/crypto/buffer.html */
-        buff1 = temp = (unsigned char*)OPENSSL_malloc(len1);
-        ssl_err = (long)ERR_get_error();
-        
-        if( NULL == buff1 )
-        {
-            pkp_display_error("OpenSSL_malloc (1)", ssl_err);
-            break; /* failed */
-        }
-        
-        /* http://www.openssl.org/docs/crypto/d2i_X509.html */
-        int len2 = i2d_X509_PUBKEY(X509_get_X509_PUBKEY(cert), &temp);
-        ssl_err = (long)ERR_get_error();
-        
-        /* These checks are making sure we got back the same values as when we sized the buffer.    */
-        /* Its pretty weak since they should always be the same. But it gives us something to test. */
-
-        if( len1 != len2 )
-        {
-            pkp_display_error("i2d_X509_PUBKEY: (len1 != len2)", ssl_err);
-            break; /* failed */
-        }
-
-        if( NULL == temp )
-        {
-            pkp_display_error("i2d_X509_PUBKEY: (NULL == temp)", ssl_err);
-            break; /* failed */
-        }
-
-        if( (temp - buff1) != len1 )
-        {
-            pkp_display_error("i2d_X509_PUBKEY ((temp - buff1) != len1)", ssl_err);
-            break;
-        }
-
-        /* End Gyrations */
-        
-        /* We are getting ready to read (and possibly write) files. Be careful of fopen() and friends. */
-        /* fopen_s() is not Posix; and "wx" and "rx" modes are C1X, and not generally available.       */
-        /* You might find it best to use open(..., O_EXCL | O_RDONLY,... ) or                          */
-        /*   open(..., O_CREAT | O_EXCL | O_WRONLY,... ) and friends.                                  */
-        /* See, for example, http://pubs.opengroup.org/onlinepubs/7908799/xsh/open.html and            */
-        /*   https://www.securecoding.cert.org/confluence/display/seccode/FIO03-C                      */
-        
-        //
-        //
-        //
-        /* Write out the expected public key (useful for boot strapping during first run) */
-        BIO* file = BIO_new_file("random-org-xxx.der", "wx");
-
-        if(NULL == file)
-            file = BIO_new_file("random-org-xxx.der", "w");
-        
-        if(NULL != file) 
-        {
-            ret = BIO_write(file, buff1, len1);
-            if(ret != len1)
-            {
-                pkp_display_error("BIO_write error, ret != len1", ssl_err);
-            }
-            
-            BIO_free_all(file);
-        }
-        
-
-        /* See the warning above!!!                                            */
-        /* http://pubs.opengroup.org/onlinepubs/009696699/functions/fopen.html */
-        fp = fopen("random-org.der", "rx");
-        ssl_err = errno;
-        
-        if(NULL ==fp) {
-            fp = fopen("random-org.der", "r");
-            ssl_err = errno;
-        }
-        
-        if(!(NULL != fp))
-        {
-            pkp_display_error("fopen", ssl_err);
-            break; /* failed */
-        }
-        
-        /* Seek to eof to determine the file's size                            */
-        /* http://pubs.opengroup.org/onlinepubs/009696699/functions/fseek.html */
-        ret = fseek(fp, 0, SEEK_END);
-        ssl_err = errno;
-        
-        if(!(0 == ret))
-        {
-            pkp_display_error("fseek (1)", ssl_err);
-            break; /* failed */
-        }
-        
-        /* Fetch the file's size                                               */
-        /* http://pubs.opengroup.org/onlinepubs/009696699/functions/ftell.html */
-        long size = ftell(fp);
-        ssl_err = errno;
-        
-        /* Arbitrary size, but should be relatively small (less than 1K or 2K) */
-        if(!(size != -1 && size > 0 && size < 2048))
-        {
-            pkp_display_error("ftell", ssl_err);
-            break; /* failed */
-        }
-        
-        /* Rewind to beginning to perform the read                             */
-        /* http://pubs.opengroup.org/onlinepubs/009696699/functions/fseek.html */
-        ret = fseek(fp, 0, SEEK_SET);
-        ssl_err = errno;
-        
-        if(!(0 == ret))
-        {
-            pkp_display_error("fseek (2)", ssl_err);
-            break; /* failed */
-        }
-        
-        /* Re-use buff2 and len2 */
-        buff2 = NULL; len2 = (int)size;
-        
-        /* http://www.openssl.org/docs/crypto/buffer.html */
-        buff2 = (unsigned char*)OPENSSL_malloc(len2);
-        ssl_err = (long)ERR_get_error();
-        
-        if(!(buff2 != NULL))
-        {
-            pkp_display_error("OpenSSL_malloc (2)", ssl_err);
-            break; /* failed */
-        }
-        
-        /* http://pubs.opengroup.org/onlinepubs/009696699/functions/fread.html */
-        /* Returns number of elements read, which should be 1 */
-        ret = (int)fread(buff2, (size_t)len2, 1, fp);
-        ssl_err = errno;
-        
-        if(!(ret == 1))
-        {
-            pkp_display_error("fread", ssl_err);
-            break; /* failed */
-        }
-        
-        /* Re-use size. MIN and MAX macro below... */
-        size = len1 < len2 ? len1 : len2;
-        
-        /*****************/
-        /*    PAYDIRT    */
-        /*****************/
-        if(len1 != (int)size || len2 != (int)size || 0 != memcmp(buff1, buff2, (size_t)size))
-        {
-#if 0
-            // This was needed on FEB 18 2013. It appears the public key changed a few
-            // days earlier. And needed again in NOV 2013. So much for key continuity!
-            BIO* file = BIO_new_file("random-org-received.der", "wx");
-            if(NULL == file)
-                file = BIO_new_file("random-org-received.der", "w");
-            
-            ASSERT(NULL != file);
-            if(NULL != file) {
-                ret = BIO_write(file, buff1, len1);
-                ASSERT(ret == len1);
-                
-                BIO_free_all(file);
-            }
-#endif
-            
-            pkp_display_error("Public key is not expected", 0);
-            break; /* failed */
-        }
-        
-        /* The one good exit point */
-        result = true;
-        (void)result;
-        
-        fprintf(stdout, "  success\n");
-        
-    } while(0);
-    
-    if(fp != NULL)
-        fclose(fp);
-    
-    /* http://www.openssl.org/docs/crypto/buffer.html */
-    if(NULL != buff2)
-        OPENSSL_free(buff2);
-    
-    /* http://www.openssl.org/docs/crypto/buffer.html */
-    if(NULL != buff1)
-        OPENSSL_free(buff1);
-    
     /* http://www.openssl.org/docs/crypto/X509_new.html */
     if(NULL != cert)
         X509_free(cert);
@@ -666,23 +434,22 @@ void BoostAsioSslClient::handshake( void )
                     long res = SSL_get_verify_result(socket_.native_handle());
                     if(X509_V_OK == res)
                     {
-                        checkPinnedPublicKey();
-                        send_request();
+                        if( checkPinnedPublicKey() )
+                        {
+                            send_request();
+                        }
+                        else
+                        {
+                            std::cout << __func__ << ": Pinned SPKI data checks failed!" 
+                                << std::endl;
+                        }
+
                     }
                     else
                     {
                         std::cerr << "SSL_get_verify_result failed. [" << res << "]  Exiting. "
                             << std::endl;
                     }
-
-                    //if (X509* cert = SSL_get_peer_certificate(socket_.native_handle()))
-                    //{
-                    //   (void)cert; // for now to get rid of error warning
-                    //   if (SSL_get_verify_result(socket_.native_handle()) == X509_V_OK)
-                    //   {
-                         
-                    //   }
-                    //}
                 }
                 else
                 {
