@@ -217,10 +217,10 @@ void CertificateHashUtility::generateCertificateHash( void )
     // next step is to base64 encode our hashed DER encoded X509_PUBKEY string value.
     //
     std::vector<unsigned char> hashed(hashedPUBKEY.begin(), hashedPUBKEY.end());
-    std::string base64PUBKEY = Base64Encode(hashed);
+    base64PUBKEY_ = Base64Encode(hashed);
 
     std::cout << "The base64 encoded X509_PUBKEY structure is " 
-        << base64PUBKEY.length() << " bytes: " << base64PUBKEY << std::endl;
+        << base64PUBKEY_.length() << " bytes: " << base64PUBKEY_ << std::endl;
 }
 void CertificateHashUtility::parseCertificateSAN( void )
 {
@@ -247,8 +247,27 @@ void CertificateHashUtility::parseCertificateCommonName( void )
     pkp_print_cn_name("Subject (cn)", sname, NID_commonName, commonName_);
 }
 
-void CertificateHashUtility::writeCertificateHash( const std::string & outFileName )
+//
+// this should prefer the SAN field if there is one.
+// The Common Name field is deprecated.
+// However, for my purposes, for my very simple demo application, the Common Name
+// will be present and accounted for.  So I will just use that.  Really I only
+// want one name to be used as a map key anyway.
+//
+void CertificateHashUtility::writeCertificateHashInfo( const std::string & outFileName )
 {
+    std::ofstream fout(outFileName.c_str(), std::ios::out|std::ios::app);
+    
+    if( fout.good() )
+    {
+        fout << commonName_ << " " << base64PUBKEY_ << std::endl;
+        fout.close();
+    }
+    else
+    {
+        std::cout << "Error opening " << outFileName << ": " << strerror(errno) << std::endl;
+    }
+
     (void)outFileName;
     //
     // FJP TODO

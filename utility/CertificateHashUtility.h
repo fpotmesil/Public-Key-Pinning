@@ -25,7 +25,7 @@ class CertificateHashUtility
         void parseCertificateCommonName( void );
         void parseCertificateIssuerName( void );
         void parseCertificateSAN( void );
-        void writeCertificateHash( const std::string & outFileName );
+        void writeCertificateHashInfo( const std::string & outFileName );
 
         //
         // functions with name prefix 'pkp_' were taken from OWASP PKP examples at
@@ -53,6 +53,7 @@ class CertificateHashUtility
         X509 * readCertificate( const std::string & certFileName );
 
         const std::string localCertFile_;
+        std::string base64PUBKEY_; // = Base64Encode(hashed);
         std::string commonName_;
         std::string sanName_;
         X509 * cert_ = NULL;

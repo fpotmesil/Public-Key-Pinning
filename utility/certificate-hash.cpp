@@ -56,7 +56,7 @@ int main(const int argc, const char* argv[])
         hasher.generateCertificateHash();
         hasher.parseCertificateCommonName();
         hasher.parseCertificateSAN();
-        hasher.writeCertificateHash(std::get<1>(args));
+        hasher.writeCertificateHashInfo(std::get<1>(args));
         hasher.cleanup();
     }
     catch (std::exception& e)
