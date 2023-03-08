@@ -54,8 +54,8 @@ int main(const int argc, const char* argv[])
         // the function calls.
         //
         hasher.generateCertificateHash();
-        hasher.parseCertificateCommonName();
-        hasher.parseCertificateSAN();
+        //hasher.parseCertificateCommonName();
+        // hasher.parseCertificateSAN();
         hasher.writeCertificateHashInfo(std::get<1>(args));
         hasher.cleanup();
     }
