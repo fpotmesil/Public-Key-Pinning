@@ -435,7 +435,6 @@ bool BoostAsioSslClient::checkPinnedPublicKey( void )
     return rval;
 }
 
-
 void BoostAsioSslClient::handshake( void )
 {
     socket_.async_handshake(boost::asio::ssl::stream_base::client,
