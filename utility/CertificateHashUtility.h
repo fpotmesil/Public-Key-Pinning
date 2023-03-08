@@ -22,36 +22,40 @@ class CertificateHashUtility
     public:
         CertificateHashUtility( const std::string & myCertFile );
         void generateCertificateHash( void );
+        void parseCertificateCommonName( void );
+        void parseCertificateIssuerName( void );
+        void parseCertificateSAN( void );
         void writeCertificateHash( const std::string & outFileName );
 
         //
         // functions with name prefix 'pkp_' were taken from OWASP PKP examples at
         // https://owasp.org/www-community/controls/Certificate_and_Public_Key_Pinning
         //
-        static void pkp_print_san_name(
+        void pkp_print_san_name(
                 const char * label,
                 X509* const cert, 
-                int nid);
+                int nid,
+                std::string & value);
 
-        static void pkp_print_cn_name(
+        void pkp_print_cn_name(
                 const char* label,
                 X509_NAME* const name,
-                int nid);
+                int nid,
+                std::string & value);
 
-        static int pkp_verify_cb(
-                int preverify, 
-                X509_STORE_CTX * x509_ctx );
+        void cleanup( void )
+        {
+            X509_free(cert_);
+            cert_ = NULL;
+        }
 
     private:
         X509 * readCertificate( const std::string & certFileName );
 
-        bool verify_certificate(
-                bool preverified,
-                boost::asio::ssl::verify_context& ctx);
-
-        void checkPinnedPublicKey( void );
-
         const std::string localCertFile_;
+        std::string commonName_;
+        std::string sanName_;
+        X509 * cert_ = NULL;
 };
 
 

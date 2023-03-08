@@ -49,8 +49,15 @@ int main(const int argc, const char* argv[])
     {
         const auto args = readCommandLineOptions(argc, argv);
         CertificateHashUtility hasher(std::get<0>(args));
+        //
+        // might just be best to make all this just happen without
+        // the function calls.
+        //
         hasher.generateCertificateHash();
+        hasher.parseCertificateCommonName();
+        hasher.parseCertificateSAN();
         hasher.writeCertificateHash(std::get<1>(args));
+        hasher.cleanup();
     }
     catch (std::exception& e)
     {
