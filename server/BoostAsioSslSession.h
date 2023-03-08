@@ -53,6 +53,7 @@ class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSess
         }
 
     private:
+        bool checkPinnedPublicKey( void );
 
         bool verify_certificate(bool preverified,
                 boost::asio::ssl::verify_context& ctx)
@@ -81,6 +82,8 @@ class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSess
         boost::asio::ssl::context & context_;
         const boost::asio::ip::tcp::endpoint remoteEndpoint_;
         const std::string remoteHostname_;
+        std::string commonName_;
+        std::string sanName_;
         char data_[1024];
         const std::string hashDataFile_;
         std::map<std::string,std::string> pinnedHostsMap_;

@@ -16,6 +16,10 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 
+
+#include "Base64.h"
+#include "HashFunctions.h"
+#include "CertificateFunctions.h"
 #include "BoostAsioSslSession.h"
 
 
@@ -45,7 +49,7 @@ public:
 
     bool verified = verifier_(preverified, ctx);
 
-    std::cout << "Issuer Name: " << issuer_name << std::endl; 
+    std::cout << "\nCertificate Issuer Name: " << issuer_name << std::endl; 
     std::cout << "Verifying Subject: " << subject_name 
         << (verified ? ": Passed " : ": Failed ") << std::endl;
 
@@ -99,56 +103,179 @@ BoostAsioSslSession::BoostAsioSslSession(
 }
 
 
+// comment from owasp site code:
+/* Extra hardening so we can discard DNS and CA hearsay. If we   */
+/* pin, we can pretty much skip the tests in 'Part 6a: Verify'   */
+/* and 'Part 6b: Verify' since we can unequivocally identify     */
+/* the host through its public key.                              */
+//
+/***************************************************************************/
+/* Fetch the certificate from the website, extract the public key as a     */
+/* DER encoded subjectPublicKeyInfo, and then compare it to the public key */
+/* on file. The key on file is what we expect to get from the server.      */
+/* lots of this code from owasp pkp_pin_peer_pubkey(SSL* ssl) function     */
+/***************************************************************************/
+bool BoostAsioSslSession::checkPinnedPublicKey( void )
+{
+    /* http://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html */
+    X509 * cert = SSL_get_peer_certificate(socket_.native_handle());
+    long ssl_err = ERR_get_error();
+    bool rval = false;
+
+    if( NULL == cert ) 
+    {
+        std::ostringstream error;
+        error << "SSL_get_peer_certificate Error: [" << ssl_err << "]" << std::endl;
+        throw std::runtime_error(error.str());  // better catch this!
+    }
+
+    //
+    // first step is to get the DER format of the Public Key.
+    //
+    // X509_get_X509_PUBKEY() returns an internal pointer to the 
+    // X509_PUBKEY structure which encodes the certificate of x. 
+    // The returned value must not be freed up after use.
+    //
+    // The X509_PUBKEY structure represents the ASN.1 SubjectPublicKeyInfo 
+    // structure defined in RFC5280 and used in certificates and certificate requests.
+    //
+    // i2d_TYPE() encodes the structure pointed to by a into DER format.
+    //
+    // If ppout is not NULL, it writes the DER encoded data to the buffer 
+    // at *ppout, and increments it to point after the data just written.
+    // If the return value is negative an error occurred, otherwise it 
+    // returns the length of the encoded data.
+    //
+    // If *ppout is NULL memory will be allocated for a buffer and the encoded 
+    // data written to it. In this case *ppout is not incremented and it points
+    // to the start of the data just written.
+    //
+    unsigned char * pubKeyBuffer = NULL;
+    int pubKeyLen = i2d_X509_PUBKEY( X509_get_X509_PUBKEY(cert), &pubKeyBuffer );
+    ssl_err = (long)ERR_get_error();
+
+    if( pubKeyLen <= 0 )
+    {
+        if( pubKeyBuffer != NULL ) OPENSSL_free(pubKeyBuffer);
+        std::ostringstream error;
+        error << "i2d_X509_PUBKEY Error: [" << ssl_err << "]" << std::endl;
+        throw std::runtime_error(error.str());  // better catch this!
+    }
+
+    std::cout << "The DER encoded X509_PUBKEY structure is " 
+        << pubKeyLen << " bytes." << std::endl;
+
+    //
+    // next step is to SHA512 our DER encoded X509_PUBKEY structure in pubKeyBuffer
+    //
+    std::string input((char*)pubKeyBuffer, pubKeyLen);
+    if( pubKeyBuffer != NULL ) OPENSSL_free(pubKeyBuffer);
+    std::string hashedPUBKEY;
+    
+    if( !computeHash(input,hashedPUBKEY) )
+    {
+        std::ostringstream error;
+        error << "Error computing hash for DER encoded X509_PUBKEY structure." << std::endl;
+        throw std::runtime_error(error.str());  // better catch this!
+    }
+
+    //
+    // next step is to base64 encode our hashed DER encoded X509_PUBKEY string value.
+    //
+    std::vector<unsigned char> hashed(hashedPUBKEY.begin(), hashedPUBKEY.end());
+    std::string base64PUBKEY = Base64Encode(hashed);
+
+    std::cout << "The base64 encoded X509_PUBKEY structure is " 
+        << base64PUBKEY.length() << " bytes: " << base64PUBKEY << std::endl;
+
+    //
+    // FJP TODO:  get the common name and check the map!!
+    //
+    parseCertificateSAN( cert, sanName_ );
+    parseCertificateCommonName( cert, commonName_ );
+
+    rval = checkPinnedSpkiMap( commonName_, base64PUBKEY, pinnedHostsMap_ );
+
+    /* http://www.openssl.org/docs/crypto/X509_new.html */
+    if(NULL != cert)
+        X509_free(cert);
+
+    return rval;
+}
+
 void BoostAsioSslSession::do_handshake( void )
 {
     auto self(shared_from_this());
 
-	std::cout << "Server starting async_handshake now...."
+	std::cout << "Server starting SSL/TLS handshake now...."
 				<< std::endl;
 
     socket_.async_handshake(boost::asio::ssl::stream_base::server, 
-            [this, self](const boost::system::error_code& error)
-            {
+        [this, self](const boost::system::error_code& error)
+        {
 		    if (!error)
-		    {
-			    std::cout << "After async_handshake, SSL Session calling do_read"
-				    << std::endl;
-			    do_read();
-		    }
+            {
+                // SSL * ssl = socket_.native_handle();
+                // (void)ssl; // for now to get rid of error warning
+                /* http://www.openssl.org/docs/ssl/SSL_get_verify_result.html */
+                /* Error codes: http://www.openssl.org/docs/apps/verify.html  */
+                long res = SSL_get_verify_result(socket_.native_handle());
+
+                if(X509_V_OK == res)
+                {
+                    if( checkPinnedPublicKey() )
+                    {
+                        std::cout << __func__ << ": Pinned SPKI hash data checks passed!" 
+                            << std::endl;
+
+                        do_read();
+                    }
+                    else
+                    {
+                        std::cout << __func__ << ": Pinned SPKI data checks failed!" 
+                            << std::endl;
+                    }
+                }
+                else
+                {
+                    std::cerr << "SSL_get_verify_result failed. [" << res << "]  Exiting. "
+                        << std::endl;
+                }
+            }
             else
             {
-			    std::cout << "async_handshake ERROR from " 
-                    << remoteEndpoint_.address().to_string() 
-                    <<": " << error.message() << std::endl;
+			    std::cout << "TLS handshake ERROR from " 
+                    << remoteHostname_ << " at IP " << remoteEndpoint_.address().to_string() 
+                    << std::endl;
             }
-            });
+        });
 }
 
 void BoostAsioSslSession::do_read( void )
 {
     auto self(shared_from_this());
     socket_.async_read_some(boost::asio::buffer(data_),
-            [this, self](const boost::system::error_code& ec, std::size_t length)
-            {
+        [this, self](const boost::system::error_code& ec, std::size_t length)
+        {
             if (!ec)
             {
-            do_write(length);
+                do_write(length);
             }
-            });
+        });
 }
 
 void BoostAsioSslSession::do_write(std::size_t length)
 {
     auto self(shared_from_this());
     boost::asio::async_write(socket_, boost::asio::buffer(data_, length),
-            [this, self](const boost::system::error_code& ec,
+        [this, self](const boost::system::error_code& ec,
                 std::size_t /*length*/)
-            {
+        {
             if (!ec)
             {
-            do_read();
+                do_read();
             }
-            });
+        });
 }
 
 
