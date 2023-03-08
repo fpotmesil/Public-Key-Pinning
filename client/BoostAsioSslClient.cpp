@@ -286,8 +286,16 @@ BoostAsioSslClient::BoostAsioSslClient(
     sslCtx_.use_private_key_file(localPrivateKeyFile_.c_str(), boost::asio::ssl::context::pem);
 
     populateAcceptableConnectionsMap( hashDataFile_, acceptableHostsMap_ );
-    endpoints_ = resolver_.resolve(remoteHost_, std::to_string(remotePort_));
-    connect(endpoints_);
+
+    if( acceptableHostsMap_.empty() )
+    {
+        std::cout << "Pinned Hosts Map is empty!  We cannot connect at all. " << std::endl;
+    }
+    else
+    {
+        endpoints_ = resolver_.resolve(remoteHost_, std::to_string(remotePort_));
+        connect(endpoints_);
+    }
 }
 
 bool BoostAsioSslClient::verify_certificate(
