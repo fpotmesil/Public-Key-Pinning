@@ -411,11 +411,16 @@ bool BoostAsioSslClient::checkPinnedPublicKey( void )
     std::cout << "The base64 encoded X509_PUBKEY structure is " 
         << base64PUBKEY.length() << " bytes: " << base64PUBKEY << std::endl;
 
+    //
+    // FJP TODO:  get the common name and check the map!!
+    //
 
 
     /* http://www.openssl.org/docs/crypto/X509_new.html */
     if(NULL != cert)
         X509_free(cert);
+
+    return rval;
 }
 
 
