@@ -56,8 +56,9 @@ Everything available on github:  https://github.com/fpotmesil/Public-Key-Pinning
 
 Application Ecosystem:
 - client/server architecture.  Expected to have several clients connected to one single server.
+- not a hard rule, it would be trivial to implement n:n connectivity and pinned cert checking.
 - two way TLS certificate negotiation in place so client and server are both authenticated.
-- Client and server certificates use X.509v3 extensions keyUsage, extendedKeyUsage, and nsCertType
+- specfic pinned certificate sets for clients and server(s).
 
 More environment notes:
 big snappy linux server is the Root and Intermediate CA: snapperhead.loesshillsfarms.org
@@ -65,6 +66,19 @@ Pi B+ v1.2 is client #1, hostname curie.loesshillsfarms.org at 192.168.0.60/24
 Pi B+ v1.2 is client #2, hostname euclid.loesshillsfarms.org at 192.168.0.61/24
 Pi 2 B v1.1 is client #3, hostname newton.loesshillsfarms.org at 192.168.0.62
 Pi 4 B is the server, hostname galileo.loesshillsfarms.org at 192.168.0.70
+
+Certificates:
+It all starts with script creating the Root and Intermediate CAs.
+From there, create CSR files on each client and server.
+- Client and server certificates use X.509v3 extensions keyUsage, extendedKeyUsage, and nsCertType
+** generated CSR example **
+- CSR files are signed by the Intermediate CA, Root only signs the Intermediate.
+** signed cert example **
+
+
+
+
+
 
 
 
