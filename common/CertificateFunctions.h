@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <cstring>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/err.h>

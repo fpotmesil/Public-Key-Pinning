@@ -313,18 +313,18 @@ bool BoostAsioSslClient::verify_certificate(
 void BoostAsioSslClient::connect(const tcp::resolver::results_type& endpoints)
 {
     boost::asio::async_connect(socket_.lowest_layer(), endpoints,
-            [this](const boost::system::error_code& error,
+        [this](const boost::system::error_code& error,
                 const tcp::endpoint& /*endpoint*/)
-            {
+        {
             if (!error)
             {
-            handshake();
+                handshake();
             }
             else
             {
-            std::cout << "Connect failed: " << error.message() << "\n";
+                std::cout << "Connect failed: " << error.message() << "\n";
             }
-            });
+        });
 }
 
 // comment from owasp site code:
@@ -437,10 +437,10 @@ void BoostAsioSslClient::handshake( void )
                 {
                     // SSL * ssl = socket_.native_handle();
                     // (void)ssl; // for now to get rid of error warning
-
                     /* http://www.openssl.org/docs/ssl/SSL_get_verify_result.html */
                     /* Error codes: http://www.openssl.org/docs/apps/verify.html  */
                     long res = SSL_get_verify_result(socket_.native_handle());
+
                     if(X509_V_OK == res)
                     {
                         if( checkPinnedPublicKey() )
