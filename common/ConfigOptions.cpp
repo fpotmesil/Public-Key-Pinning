@@ -41,6 +41,9 @@ void ConfigOptions::readConfigFile( void )
         ("local_cert", po::value<std::string>(&certFileName), 
          "local computer certificate filename and path")
 
+        ("hash_data_file", po::value<std::string>(&hashDataFileName), 
+         "file containing the hashed SPKI data for allowed connections")
+
         ("local_cert_private_key", po::value<std::string>(&certPrivateKeyFileName), 
          "local computer certificate private key filename and path")
 

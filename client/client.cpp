@@ -72,6 +72,7 @@ int main(const int argc, const char* argv[])
                 sslCtx,
                 config.getCertFileName(),
                 config.getCertPrivateKeyFileName(),
+                config.getHashDataFileName(),
                 config.getCaFileName(),
                 config.getServerName(),
                 config.getServerPort() );

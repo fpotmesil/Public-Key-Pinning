@@ -5,8 +5,13 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <map>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
+
+void populateAcceptableConnectionsMap( 
+        const std::string & inputFileName,
+        std::map<std::string, std::string> & hostsMap );
 
 bool computeHash(
         const std::string & unhashed,

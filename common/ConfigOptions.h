@@ -17,7 +17,12 @@ class ConfigOptions
         {
             return certFileName;
         }
- 
+
+        const std::string getHashDataFileName( void ) const
+        {
+            return hashDataFileName;
+        }
+
         const std::string getCertPrivateKeyFileName( void ) const
         {
             return certPrivateKeyFileName;
@@ -56,6 +61,7 @@ class ConfigOptions
 
         std::string configFileName; // passed into constructor, config file to read.
         std::string certFileName;   // our certificate
+        std::string hashDataFileName;   // file for hashed SPKI data of accepted hosts
         std::string certPrivateKeyFileName;     // our private key that goes with our cert
         std::string caFileName;     // CA chain certs
         std::string serverName;     // server name to connect to, if client

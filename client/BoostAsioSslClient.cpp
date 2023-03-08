@@ -13,7 +13,6 @@
 #include "Base64.h"
 #include "HashFunctions.h"
 #include "BoostAsioSslClient.h"
-#include "BoostAsioSslClient.h"
 
 
 ///@brief Helper class that prints the current certificate's subject
@@ -261,6 +260,7 @@ BoostAsioSslClient::BoostAsioSslClient(
         boost::asio::ssl::context & sslCtx,
         const std::string & myCertFile,
         const std::string & myPrivateKeyFile,
+        const std::string & myHashDataFile,
         const std::string & caCertFile,
         const std::string & hostname,
         const int port ) : 
@@ -269,6 +269,7 @@ BoostAsioSslClient::BoostAsioSslClient(
     remoteHost_(hostname),
     localCertFile_(myCertFile),
     localPrivateKeyFile_(myPrivateKeyFile),
+    hashDataFile_(myHashDataFile),
     sslCtx_(boost::asio::ssl::context::tls),
     resolver_(io_context),
     socket_(io_context, sslCtx)
@@ -302,6 +303,7 @@ BoostAsioSslClient::BoostAsioSslClient(
     // sslCtx_.use_certificate_file(localCertFile_.c_str(), boost::asio::ssl::context::pem);
     sslCtx_.use_certificate_chain_file(localCertFile_.c_str());
     sslCtx_.use_private_key_file(localPrivateKeyFile_.c_str(), boost::asio::ssl::context::pem);
+    populateAcceptableConnectionsMap( hashDataFile_, acceptableHostsMap_ );
     endpoints_ = resolver_.resolve(remoteHost_, std::to_string(remotePort_));
     connect(endpoints_);
 }

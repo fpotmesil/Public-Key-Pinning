@@ -34,6 +34,7 @@ class BoostAsioSslClient
                 boost::asio::ssl::context & sslCtx,
                 const std::string & myCertFile,
                 const std::string & myPrivateKeyFile,
+                const std::string & myHashDataFile,
                 const std::string & caCertFile,
                 const std::string & hostname,
                 const int port );
@@ -78,6 +79,8 @@ class BoostAsioSslClient
         const std::string remoteHost_;
         const std::string localCertFile_;
         const std::string localPrivateKeyFile_;
+        const std::string hashDataFile_;
+        std::map<std::string,std::string> acceptableHostsMap_;
         boost::asio::ssl::context sslCtx_;
         boost::asio::ip::tcp::resolver resolver_; // (io_context);
         boost::asio::ssl::stream<tcp::socket> socket_;

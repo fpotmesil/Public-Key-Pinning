@@ -3,6 +3,10 @@
 // https://stackoverflow.com/questions/2262386/generate-sha256-with-openssl-and-c
 //
 
+#include <fstream>
+#include <string.h>
+#include <errno.h>
+
 #include "HashFunctions.h"
 #if 0
 //
@@ -61,4 +65,53 @@ bool computeHash(const std::string& unhashed, std::string& hashed)
 
     return success;
 }
+
+void populateAcceptableConnectionsMap( 
+        const std::string & inputFileName,
+        std::map<std::string, std::string> & hostsMap )
+{
+    std::ifstream fin(inputFileName.c_str(), std::ifstream::in);
+
+    if( !fin.good() )
+    {
+        std::cout << __func__ << ": Error opening " << inputFileName
+            << ": " << strerror(errno) << std::endl;
+    }
+    else
+    {
+        std::string line;
+        std::string hostName;
+        std::string hashValue;
+
+        while( std::getline(fin, line) )
+        {
+            std::istringstream iss(line);
+
+            if( !(iss >> hostName >> hashValue) )
+            {
+                break;
+            }
+
+            auto rval = hostsMap.insert( 
+                    std::make_pair(hostName,hashValue) );
+
+            if( rval.second )
+            {
+                std::cout << "Inserted hostname " << hostName 
+                    << " into acceptable host map. " << std::endl;
+            }
+            else
+            {
+                //
+                // Error!   this indicates a duplicate key entry!
+                //
+                std::cout << "Acceptable host map insert error for hostname: "
+                    << hostName << std::endl;
+            }
+        }
+
+        fin.close();
+    }
+}
+
 
