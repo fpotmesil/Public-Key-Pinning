@@ -199,6 +199,11 @@ bool checkPinnedSpkiMap(
                 << base64PUBKEY << std::endl;
         }
     }
+    else
+    {
+        std::cout << __func__ << ":  Common Name " << commonName 
+            << " was NOT found in the pinned hosts map. " << std::endl;
+    }
 
     return rval;
 }
