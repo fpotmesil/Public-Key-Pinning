@@ -445,6 +445,9 @@ void BoostAsioSslClient::handshake( void )
                     {
                         if( checkPinnedPublicKey() )
                         {
+                            std::cout << __func__ << ": Pinned SPKI hash data checks passed!" 
+                                << std::endl;
+
                             send_request();
                         }
                         else
