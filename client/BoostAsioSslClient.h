@@ -72,6 +72,8 @@ class BoostAsioSslClient
         void send_request( void );
         void receive_response(std::size_t length);
 
+        std::string sanName_;
+        std::string commonName_;
         const int remotePort_;
         char request_[max_length];
         char reply_[max_length];

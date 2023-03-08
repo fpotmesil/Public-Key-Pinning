@@ -166,3 +166,42 @@ void pkp_print_san_name(
     
 }
 
+bool checkPinnedSpkiMap( 
+        const std::string & commonName,
+        const std::string & base64PUBKEY,
+        const std::map<std::string, std::string> & pinnedHostsMap )
+{
+    bool rval = false;
+
+    auto search = pinnedHostsMap.find( commonName );
+
+    if( search != pinnedHostsMap.end() )
+    {
+        //
+        // found the common name key.
+        // now check the certificate.
+        //
+        const std::string & hashValue = search->second;
+
+        std::cout << __func__ << ":  Common Name " << commonName 
+            << " found in the pinned hosts map." 
+            << "  Hashed SPKI Data: " << hashValue << std::endl;
+        
+        if( !base64PUBKEY.compare(hashValue) )
+        {
+            std::cout << __func__ << ": hashed SPKI values match!  host is pinned and allowed."
+                << std::endl;
+            rval = true;
+        }
+        else
+        {
+            std::cout << __func__ << ": hashed SPKI values DO NOT MATCH:  "
+                << base64PUBKEY << std::endl;
+        }
+    }
+
+    return rval;
+}
+
+
+

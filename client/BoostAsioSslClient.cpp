@@ -12,6 +12,7 @@
 
 #include "Base64.h"
 #include "HashFunctions.h"
+#include "CertificateFunctions.h"
 #include "BoostAsioSslClient.h"
 
 
@@ -414,7 +415,10 @@ bool BoostAsioSslClient::checkPinnedPublicKey( void )
     //
     // FJP TODO:  get the common name and check the map!!
     //
+    parseCertificateSAN( cert, sanName_ );
+    parseCertificateCommonName( cert, commonName_ );
 
+    rval = checkPinnedSpkiMap( commonName_, base64PUBKEY, acceptableHostsMap_ );
 
     /* http://www.openssl.org/docs/crypto/X509_new.html */
     if(NULL != cert)

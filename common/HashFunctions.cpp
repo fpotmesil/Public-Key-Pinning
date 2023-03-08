@@ -66,6 +66,9 @@ bool computeHash(const std::string& unhashed, std::string& hashed)
     return success;
 }
 
+//
+// FJP TODO - move this to CertificateFunctions.cpp file!!
+//
 void populateAcceptableConnectionsMap( 
         const std::string & inputFileName,
         std::map<std::string, std::string> & hostsMap )
