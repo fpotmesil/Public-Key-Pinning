@@ -35,14 +35,19 @@ public:
     bool preverified,
     boost::asio::ssl::verify_context& ctx )
   {
-    char subject_name[256];
     X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+
+    char subject_name[256];
     X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
 
-    bool verified = verifier_(preverified, ctx);
-    std::cout << "Verifying: " << subject_name << "\n"
-                 "Verified: " << verified << std::endl;
+    char issuer_name[256];
+    X509_NAME_oneline(X509_get_issuer_name(cert), issuer_name, 256);
 
+    bool verified = verifier_(preverified, ctx);
+
+    std::cout << "Issuer Name: " << issuer_name << std::endl; 
+    std::cout << "Verifying Subject: " << subject_name 
+        << (verified ? ": Passed " : ": Failed ") << std::endl;
 
     return verified;
   }
