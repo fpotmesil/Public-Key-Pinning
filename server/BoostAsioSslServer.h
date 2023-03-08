@@ -30,6 +30,7 @@ public:
           boost::asio::io_context& io_context, 
           const std::string & myCertFile,
           const std::string & myPrivateKeyFile,
+          const std::string & hashDataFile,
           const std::string & caCertFile,
           const int port );
 
@@ -49,6 +50,8 @@ private:
   const std::string remoteHost_;
   const std::string localCertFile_;
   const std::string localPrivateKeyFile_;
+  const std::string hashDataFile_;
+
 };
 
 #endif  /* #define BOOST_ASIO_SSL_SERVER_H__ */

@@ -18,6 +18,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 
+#include "HashFunctions.h"
+
 using boost::asio::ip::tcp;
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -27,11 +29,21 @@ class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSess
         BoostAsioSslSession(
             tcp::socket socket,
             boost::asio::ssl::context & ctx,
-            const std::string & remoteHostname );
+            const std::string & remoteHostname,
+            const std::string & hashDataFile );
 
         void start( void )
         {
-            do_handshake();
+            populateAcceptableConnectionsMap(hashDataFile_, acceptableHostsMap_); 
+
+	    //
+	    // if we dont have any acceptable hosts to allow connections from,
+	    // we are done here!
+	    //
+	    if( !acceptableHostsMap_.empty() )
+	    {
+            	do_handshake();
+	    }
         }
 
     private:
@@ -65,6 +77,8 @@ class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSess
         const boost::asio::ip::tcp::endpoint remoteEndpoint_;
         const std::string remoteHostname_;
         char data_[1024];
+        const std::string hashDataFile_;
+        std::map<std::string,std::string> acceptableHostsMap_;
 };
 
 

@@ -41,6 +41,7 @@ int main(
             io_context, 
             config.getCertFileName(),
             config.getCertPrivateKeyFileName(),
+            config.getHashDataFileName(),
             config.getCaFileName(),
             config.getListenPort() );
 

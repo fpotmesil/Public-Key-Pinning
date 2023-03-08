@@ -30,6 +30,7 @@ BoostAsioSslServer::BoostAsioSslServer(
         boost::asio::io_context & io_context, 
         const std::string & myCertFile,
         const std::string & myPrivateKeyFile,
+        const std::string & hashDataFile,
         const std::string & caCertFile,
         const int port ) :
     acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
@@ -38,7 +39,8 @@ BoostAsioSslServer::BoostAsioSslServer(
     listenPort_(port),
     caCertFile_(caCertFile),
     localCertFile_(myCertFile),
-    localPrivateKeyFile_(myPrivateKeyFile)
+    localPrivateKeyFile_(myPrivateKeyFile),
+    hashDataFile_(hashDataFile)
 {
     context_.set_options(
             boost::asio::ssl::context::default_workarounds |
@@ -127,11 +129,11 @@ void BoostAsioSslServer::do_accept( void )
                 }
 
                 auto session = std::make_shared<BoostAsioSslSession>(
-                        std::move(socket), context_, tempHost );
+                        std::move(socket), context_, tempHost, hashDataFile_ );
                     //context_, boost::asio::ssl::stream<tcp::socket>(
                     //    std::move(socket), context_) );
 
-                    session->start();
+                session->start();
             }
 
             do_accept();
