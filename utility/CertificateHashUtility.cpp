@@ -31,7 +31,7 @@ class verbose_verification
                 bool preverified,
                 boost::asio::ssl::verify_context& ctx )
         {
-            int verifyRval = BoostAsioSslClient::pkp_verify_cb(
+            int verifyRval = CertificateHashUtility::pkp_verify_cb(
                     preverified, ctx.native_handle() );
             std::cout << "Initial verify callback rval: " << verifyRval << std::endl;
 
@@ -79,7 +79,7 @@ void pkp_display_warning(const char* msg, long err)
         fprintf(stdout, "Warning: %s: %ld (%lx)\n", msg, err, err);
 }
 
-void BoostAsioSslClient::pkp_print_cn_name(
+void CertificateHashUtility::pkp_print_cn_name(
         const char* label,
         X509_NAME* const name,
         int nid)
@@ -115,7 +115,7 @@ void BoostAsioSslClient::pkp_print_cn_name(
         fprintf(stdout, "  %s: <not available>\n", label);
 }
 
-void BoostAsioSslClient::pkp_print_san_name(
+void CertificateHashUtility::pkp_print_san_name(
         const char * label,
         X509* const cert, 
         int nid)
@@ -194,7 +194,7 @@ void BoostAsioSslClient::pkp_print_san_name(
 /*                                                                       */
 /* Or we can observe it...                                               */
 /*************************************************************************/
-int BoostAsioSslClient::pkp_verify_cb(
+int CertificateHashUtility::pkp_verify_cb(
         int preverify, 
         X509_STORE_CTX * x509_ctx )
 {
@@ -258,12 +258,113 @@ int BoostAsioSslClient::pkp_verify_cb(
 
 CertificateHashUtility::CertificateHashUtility(
         const std::string & myCertFile ) : localCertFile_(myCertFile)
+{ }
+
+
+void CertificateHashUtility::generateCertificateHash( void )
 {
+    //
+    // readCertificate checks cert for NULL before returning.
+    // would not be a bad double check though....
+    //
+    X509 * cert = readCertificate( localCertFile_ );
+    //
+    // first step is to get the DER format of the Public Key.
+    //
+    // X509_get_X509_PUBKEY() returns an internal pointer to the 
+    // X509_PUBKEY structure which encodes the certificate of x. 
+    // The returned value must not be freed up after use.
+    //
+    // The X509_PUBKEY structure represents the ASN.1 SubjectPublicKeyInfo 
+    // structure defined in RFC5280 and used in certificates and certificate requests.
+    //
+    // i2d_TYPE() encodes the structure pointed to by a into DER format.
+    //
+    // If ppout is not NULL, it writes the DER encoded data to the buffer 
+    // at *ppout, and increments it to point after the data just written.
+    // If the return value is negative an error occurred, otherwise it 
+    // returns the length of the encoded data.
+    //
+    // If *ppout is NULL memory will be allocated for a buffer and the encoded 
+    // data written to it. In this case *ppout is not incremented and it points
+    // to the start of the data just written.
+    //
+    unsigned char * pubKeyBuffer = NULL;
+    int pubKeyLen = i2d_X509_PUBKEY( X509_get_X509_PUBKEY(cert), &pubKeyBuffer );
+    long ssl_err = ERR_get_error();
 
+    if( pubKeyLen <= 0 )
+    {
+        if( pubKeyBuffer != NULL ) OPENSSL_free(pubKeyBuffer);
+        std::ostringstream error;
+        error << "i2d_X509_PUBKEY Error: [" << ssl_err << "]" << std::endl;
+        throw std::runtime_error(error.str());  // better catch this!
+    }
 
+    std::cout << "The DER encoded X509_PUBKEY structure is " 
+        << pubKeyLen << " bytes." << std::endl;
+
+    //
+    // next step is to SHA512 our DER encoded X509_PUBKEY structure in pubKeyBuffer
+    //
+    std::string input((char*)pubKeyBuffer, pubKeyLen);
+    if( pubKeyBuffer != NULL ) OPENSSL_free(pubKeyBuffer);
+    std::string hashedPUBKEY;
+    
+    if( !computeHash(input,hashedPUBKEY) )
+    {
+        std::ostringstream error;
+        error << "Error computing hash for DER encoded X509_PUBKEY structure." << std::endl;
+        throw std::runtime_error(error.str());  // better catch this!
+    }
+
+    //
+    // next step is to base64 encode our hashed DER encoded X509_PUBKEY string value.
+    //
+    std::vector<unsigned char> hashed(hashedPUBKEY.begin(), hashedPUBKEY.end());
+    std::string base64PUBKEY = Base64Encode(hashed);
+
+    std::cout << "The base64 encoded X509_PUBKEY structure is " 
+        << base64PUBKEY.length() << " bytes: " << base64PUBKEY << std::endl;
+
+    X509_free(cert);
 }
 
-bool BoostAsioSslClient::verify_certificate(
+void CertificateHashUtility::writeCertificateHash( const std::string & outFileName )
+{
+    (void)outFileName;
+    //
+    // FJP TODO
+    //
+}
+
+X509 * CertificateHashUtility::readCertificate( const std::string & certFileName )
+{
+	BIO * fileBio = BIO_new_file(certFileName.c_str(), "r");
+
+    if( NULL == fileBio ) 
+    {
+        std::ostringstream error;
+        error << "BIO_new_file Error opening: " << certFileName << ": "
+            << strerror(errno) << std::endl;
+        throw std::runtime_error(error.str());
+    }
+
+	X509 * cert = PEM_read_bio_X509(fileBio, NULL, NULL, NULL);
+	BIO_free(fileBio);
+
+    if( NULL == cert ) 
+    {
+        std::ostringstream error;
+        error << "PEM_read_bio_X509 Error reading: " << certFileName << std::endl;
+        throw std::runtime_error(error.str());
+    }
+
+	return cert;
+}
+
+
+bool CertificateHashUtility::verify_certificate(
         bool preverified,
         boost::asio::ssl::verify_context& ctx)
 {
@@ -295,7 +396,7 @@ bool BoostAsioSslClient::verify_certificate(
 /* on file. The key on file is what we expect to get from the server.      */
 /* lots of this code from owasp pkp_pin_peer_pubkey(SSL* ssl) function     */
 /***************************************************************************/
-void BoostAsioSslClient::checkPinnedPublicKey( void )
+void CertificateHashUtility::checkPinnedPublicKey( void )
 {
     FILE* fp = NULL;
 
@@ -306,7 +407,10 @@ void BoostAsioSslClient::checkPinnedPublicKey( void )
     bool result = false;
 
     /* http://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html */
-    X509 * cert = SSL_get_peer_certificate(socket_.native_handle());
+    //
+    // 
+    //
+    X509 * cert = NULL;  // SSL_get_peer_certificate(socket_.native_handle());
     long ssl_err = ERR_get_error();
 
     if( NULL == cert ) 
