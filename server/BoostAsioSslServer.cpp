@@ -92,7 +92,21 @@ BoostAsioSslServer::BoostAsioSslServer(
     // context_.use_private_key_file("server.pem", boost::asio::ssl::context::pem);
     // context_.use_tmp_dh_file("dh4096.pem");
 
-    do_accept();
+    populateAcceptableConnectionsMap(hashDataFile_, pinnedHostsMap_); 
+
+    //
+    // if we dont have any pinned hosts to allow connections from,
+    // we are done here!
+    //
+    if( !pinnedHostsMap_.empty() )
+    {
+        do_accept();
+    }
+    else
+    {
+        std::cout << "Pinned Hosts Map is empty!  We cannot accept any connections."
+            << std::endl;
+    }
 }
 
 void BoostAsioSslServer::do_accept( void )
@@ -129,7 +143,7 @@ void BoostAsioSslServer::do_accept( void )
                 }
 
                 auto session = std::make_shared<BoostAsioSslSession>(
-                        std::move(socket), context_, tempHost, hashDataFile_ );
+                        std::move(socket), context_, tempHost, pinnedHostsMap_ );
                     //context_, boost::asio::ssl::stream<tcp::socket>(
                     //    std::move(socket), context_) );
 

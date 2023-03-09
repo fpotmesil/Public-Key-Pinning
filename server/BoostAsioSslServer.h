@@ -51,6 +51,7 @@ private:
   const std::string localCertFile_;
   const std::string localPrivateKeyFile_;
   const std::string hashDataFile_;
+  std::map<std::string,std::string> pinnedHostsMap_;
 
 };
 

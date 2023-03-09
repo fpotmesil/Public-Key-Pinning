@@ -71,12 +71,13 @@ BoostAsioSslSession::BoostAsioSslSession(
             tcp::socket socket,
             boost::asio::ssl::context & ctx,
             const std::string & remoteHostname,
-            const std::string & hashDataFile ) :
+            const std::map<std::string,std::string> & pinnedHostsMap ) :
+            // const std::string & hashDataFile ) :
     socket_( std::move(socket), ctx ),
     context_(ctx),
     remoteEndpoint_(socket_.lowest_layer().remote_endpoint()),
     remoteHostname_(remoteHostname),
-    hashDataFile_(hashDataFile)
+    pinnedHostsMap_(pinnedHostsMap)
 {
     std::cout << "In BoostAsioSslSession Constructor.  Remote Host is: " 
         << remoteHostname_ << " at IP " << remoteEndpoint_.address().to_string() 

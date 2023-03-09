@@ -31,11 +31,12 @@ class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSess
             tcp::socket socket,
             boost::asio::ssl::context & ctx,
             const std::string & remoteHostname,
-            const std::string & hashDataFile );
+            const std::map<std::string,std::string> & pinnedHostsMap );
+            //const std::string & hashDataFile );
 
         void start( void )
         {
-            populateAcceptableConnectionsMap(hashDataFile_, pinnedHostsMap_); 
+            // populateAcceptableConnectionsMap(hashDataFile_, pinnedHostsMap_); 
 
             //
             // if we dont have any pinned hosts to allow connections from,
@@ -85,8 +86,8 @@ class BoostAsioSslSession : public std::enable_shared_from_this<BoostAsioSslSess
         std::string commonName_;
         std::string sanName_;
         char data_[1024];
-        const std::string hashDataFile_;
-        std::map<std::string,std::string> pinnedHostsMap_;
+        // const std::string hashDataFile_;
+        const std::map<std::string,std::string> & pinnedHostsMap_;
 };
 
 
