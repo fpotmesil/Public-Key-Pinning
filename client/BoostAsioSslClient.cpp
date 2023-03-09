@@ -9,6 +9,9 @@
 //
 
 #include <sstream>
+#include <ctime>
+#include <ratio>
+#include <chrono>
 
 #include "Base64.h"
 #include "HashFunctions.h"
@@ -479,41 +482,50 @@ void BoostAsioSslClient::handshake( void )
 
 void BoostAsioSslClient::send_request( void )
 {
-    std::cout << "Enter message: ";
-    std::cin.getline(request_, max_length);
-    size_t request_length = std::strlen(request_);
+    // std::cout << "Enter message: ";
+    // std::cin.getline(request_, max_length);
+    // size_t request_length = std::strlen(request_);
 
+    using std::chrono::system_clock;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    system_clock::time_point today = system_clock::now();
+    std::time_t tt = system_clock::to_time_t ( today );
+    std::ostringstream output;
+    output << "today is: " << ctime(&tt);
+    std::cout << "Sending server our heartbeat now." << std::endl;
+    
     boost::asio::async_write(socket_,
-            boost::asio::buffer(request_, request_length),
+        boost::asio::buffer(output.str().c_str(), output.str().length()),
             [this](const boost::system::error_code& error, std::size_t length)
             {
-            if (!error)
-            {
-            receive_response(length);
-            }
-            else
-            {
-            std::cout << "Write failed: " << error.message() << "\n";
-            }
+                if (!error)
+                {
+                    receive_response(length);
+                }
+                else
+                {
+                    std::cout << "Write failed: " << error.message() << "\n";
+                }
             });
 }
 
 void BoostAsioSslClient::receive_response(std::size_t length)
 {
     boost::asio::async_read(socket_,
-            boost::asio::buffer(reply_, length),
+        boost::asio::buffer(reply_, length),
             [this](const boost::system::error_code& error, std::size_t length)
             {
-            if (!error)
-            {
-            std::cout << "Reply: ";
-            std::cout.write(reply_, length);
-            std::cout << "\n";
-            }
-            else
-            {
-            std::cout << "Read failed: " << error.message() << "\n";
-            }
+                if (!error)
+                {
+                    std::cout << "Server Reply: ";
+                    std::cout.write(reply_, length);
+                    std::cout << "\n";
+                    send_request();
+                }
+                else
+                {
+                    std::cout << "Read failed: " << error.message() << "\n";
+                }
             });
 }
 
