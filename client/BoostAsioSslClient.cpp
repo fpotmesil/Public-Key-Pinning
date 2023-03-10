@@ -12,6 +12,7 @@
 #include <ctime>
 #include <ratio>
 #include <chrono>
+#include <thread>
 
 #include "Base64.h"
 #include "HashFunctions.h"
