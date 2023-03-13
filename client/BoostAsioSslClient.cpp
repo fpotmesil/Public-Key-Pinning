@@ -13,6 +13,7 @@
 #include <ratio>
 #include <chrono>
 #include <thread>
+#include <boost/version.hpp>
 
 #include "Base64.h"
 #include "HashFunctions.h"
@@ -290,7 +291,7 @@ BoostAsioSslClient::BoostAsioSslClient(
     //
     socket_.set_verify_callback(
 		    make_verbose_verification(
-#if 1
+#if BOOST_VERSION >= 107300 
 			    boost::asio::ssl::host_name_verification(remoteHost_)));
 #else
 			    boost::asio::ssl::rfc2818_verification(remoteHost_)));

@@ -14,6 +14,7 @@
 #include <functional>
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/version.hpp>
 #include <boost/asio/ssl.hpp>
 
 
@@ -101,7 +102,7 @@ BoostAsioSslSession::BoostAsioSslSession(
     //
     socket_.set_verify_callback(
 		    make_verbose_verification(
-#if 1
+#if BOOST_VERSION >= 107300
                 boost::asio::ssl::host_name_verification(remoteHostname_.c_str())));
 #else
 			    boost::asio::ssl::rfc2818_verification(remoteHostname_.c_str())));
