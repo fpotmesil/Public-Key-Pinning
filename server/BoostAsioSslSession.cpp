@@ -93,12 +93,24 @@ BoostAsioSslSession::BoostAsioSslSession(
     // Boost host_name_verification verifies a certificate against a host_name
     // according to the rules described in RFC 6125.
     //
+    // Boost rfc2818 verification is based off rules in RFC 2818.  Prefer to use
+    // the 'more strict' host_name_verification if present.  This was added in 
+    // Boost version 1.73.0 so it might not be available depending on OS flavor and version.
+    //
+    // FJP TODO - fix this so it uses BOOST_VERSION instead of crappy if 1/else
+    //
     socket_.set_verify_callback(
-            make_verbose_verification(
+		    make_verbose_verification(
+#if 1
                 boost::asio::ssl::host_name_verification(remoteHostname_.c_str())));
-                // boost::asio::ssl::rfc2818_verification(
-                //    remoteEndpoint_.address().to_string())));
 #else
+			    boost::asio::ssl::rfc2818_verification(remoteHostname_.c_str())));
+#endif
+#else
+    //
+    // This verify_certificate callback just dumps out the subject names
+    // and is really only for debugging.
+    //
     std::bind(&BoostAsioSslSession::verify_certificate, this, _1, _2);
 #endif
 }
