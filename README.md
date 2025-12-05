@@ -1,2 +1,2 @@
 # Public-Key-Pinning
-Demo files for public key pinning in a native application ecosystem
+public key pinning for physical pos devices in a native application ecosystem demo files.
